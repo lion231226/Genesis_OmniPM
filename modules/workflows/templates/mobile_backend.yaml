@@ -1,0 +1,295 @@
+# =============================================================================
+# OmniPM v2.1.0 — 开发型DAG模板：移动端后端服务 | 风险等级：低-中 | 复杂度：低-中 | 节点数：5~7 | 门控数：2
+# =============================================================================
+template:
+  id: "mobile_backend"
+  name: "移动端后端服务"
+  schema_version: "2.1.0"
+  project_type: "开发型"
+  risk_level: ["low", "medium"]
+  complexity: ["low", "medium"]
+  estimated_nodes: [6, 8]
+  description: >
+    适用于移动App（iOS/Android）的后端API服务。
+    典型场景：社交App后端、工具类App后端、内容分发App后端、IoT后端。
+    默认技术栈：RESTful API + 关系型数据库 + Token认证 + 推送通知 + 移动端优化（分页/增量同步）。
+
+  design_dimensions:
+    - dimension: "数据架构"
+      depth: "STANDARD"
+      reason: "涉及用户数据存储、内容管理和移动端数据同步策略"
+    - dimension: "安全设计"
+      depth: "STANDARD"
+      reason: "移动端Token认证、API签名、防篡改触发SF-03/SF-04"
+    - dimension: "性能与伸缩"
+      depth: "STANDARD"
+      reason: "移动网络不稳定，需考虑API响应体积优化和离线支持"
+    - dimension: "部署运维"
+      depth: "LIGHT"
+      reason: "后端服务容器化部署，移动端CI/CD（App打包）不在范围内"
+    - dimension: "可观测性"
+      depth: "LIGHT"
+      reason: "API错误追踪 + 移动端Crash Report对接"
+    - dimension: "合规隐私"
+      depth: "SKIP"
+      reason: "如涉及PII则由安全设计维度覆盖"
+    - dimension: "记忆层/状态管理"
+      depth: "LIGHT"
+      reason: "Token刷新机制 + 设备注册 + 推送Token管理"
+
+  nodes:
+    - node_id: "req_analysis"
+      name: "需求分析"
+      node_type: "ANALYSIS"
+      domain: "需求管理"
+      depends_on: []
+      expert_panel:
+        - expert: "REQ"
+          intensity: "STANDARD"
+          focus: "梳理移动端功能清单、用户角色、数据实体、推送场景、离线需求"
+          output_requirement: "输出用户故事地图 + API端点清单 + 核心实体ER草图 + 推送通知场景清单"
+      success_criteria:
+        - "API端点明确命名和HTTP动词"
+        - "移动端特有需求（Token管理/推送/离线）已识别"
+        - "至少3个核心用户旅程"
+      estimated_tokens:
+        input: 1500
+        output: 3000
+      max_retries: 3
+
+    - node_id: "meta_gate"
+      name: "META-GATE需求确认"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["req_analysis"]
+      expert_panel:
+      success_criteria:
+        - "用户确认需求分析结论"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+    - node_id: "api_design"
+      name: "移动端API契约设计"
+      node_type: "DESIGN"
+      domain: "API设计"
+      depends_on: ["meta_gate"]
+      expert_panel:
+        - expert: "ARCH"
+          intensity: "STANDARD"
+          focus: "RESTful路由设计、版本策略（强制版本管理）、移动端友好分页（Cursor-based）、增量同步API"
+          output_requirement: "输出OpenAPI 3.0规范 + 移动端API设计ADR"
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "Token认证中间件、推送服务集成、移动端优化（响应字段按需返回/压缩）"
+          output_requirement: "输出模块划分图 + 认证流程 + 推送集成方案"
+      success_criteria:
+        - "所有端点有完整OpenAPI规范"
+        - "分页方案为Cursor-based（适配移动端）"
+        - "增量同步API设计（如适用）"
+        - "API版本策略已定义"
+      estimated_tokens:
+        input: 2000
+        output: 5000
+      max_retries: 3
+
+    - node_id: "db_design"
+      name: "数据库Schema设计"
+      node_type: "DESIGN"
+      domain: "数据库"
+      depends_on: ["meta_gate"]
+      expert_panel:
+        - expert: "DB"
+          intensity: "STANDARD"
+          focus: "用户/设备表设计、内容存储方案、索引策略（移动端高频查询优化）"
+          output_requirement: "输出DDL脚本 + ER图 + 索引策略 + 迁移方案"
+      success_criteria:
+        - "所有实体表完整定义"
+        - "移动端高频查询（>=5条）有索引覆盖"
+        - "迁移脚本含UP和DOWN"
+      estimated_tokens:
+        input: 1500
+        output: 4000
+      max_retries: 3
+
+    - node_id: "design_review"
+      name: "设计联合评审"
+      node_type: "REVIEW"
+      domain: "设计评审"
+      depends_on: ["api_design", "db_design"]
+      expert_panel:
+        - expert: "ARCH"
+          intensity: "STANDARD"
+          focus: "评审API设计面向移动端的适配性"
+          output_requirement: "输出>=3条架构建议"
+        - expert: "DB"
+          intensity: "STANDARD"
+          focus: "评审数据模型和查询性能"
+          output_requirement: "输出>=3条数据层建议"
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "评审业务逻辑和推送集成"
+          output_requirement: "输出>=3条后端建议"
+        - expert: "SEC"
+          intensity: "STANDARD"
+          focus: "评审Token安全和API签名机制"
+          output_requirement: "输出>=3条安全建议"
+      success_criteria:
+        - "所有P0问题修正"
+        - "每位专家>=最低数量建议"
+      estimated_tokens:
+        input: 3000
+        output: 6000
+      max_retries: 3
+
+    - node_id: "develop_and_test"
+      name: "开发实现与测试"
+      node_type: "DEVELOP"
+      domain: "后端开发"
+      depends_on: ["design_review"]
+      expert_panel:
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "实现API、Token认证、推送服务集成、移动端优化"
+          output_requirement: "输出可运行后端代码 + 单元测试"
+        - expert: "QA"
+          intensity: "STANDARD"
+          focus: "编写API集成测试、Token认证测试、边界场景测试"
+          output_requirement: "输出测试用例矩阵 + 自动化测试脚本"
+      success_criteria:
+        - "所有API端点有集成测试"
+        - "Token认证流程测试覆盖（刷新/过期）"
+        - "单元测试覆盖率>=80%"
+        - "无P0安全漏洞"
+      estimated_tokens:
+        input: 3000
+        output: 8000
+      max_retries: 3
+
+    - node_id: "deliver"
+      name: "交付与文档"
+      node_type: "DELIVER"
+      domain: "项目管理"
+      depends_on: ["develop_and_test"]
+      expert_panel:
+      success_criteria:
+        - "产出API文档（含移动端SDK调用示例）"
+        - "产出README（含本地启动/部署）"
+        - "产出PROJECT_MEMORY.md"
+        - "产出Dockerfile + docker-compose.yml"
+      estimated_tokens:
+        input: 1000
+        output: 3000
+      max_retries: 3
+
+    - node_id: "gate_acceptance"
+      name: "GATE-ACCEPTANCE交付验收"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["deliver"]
+      expert_panel:
+      success_criteria:
+        - "用户确认交付物满足需求"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+  edges:
+    - edge_id: "e_req_to_gate"
+      from: "req_analysis"
+      to: "meta_gate"
+      condition: "on_success"
+      data_flow: "用户故事地图 + API清单 + 推送场景清单"
+      label: "需求 -> 确认"
+
+    - edge_id: "e_gate_to_api"
+      from: "meta_gate"
+      to: "api_design"
+      condition: "on_success"
+      data_flow: "确认的需求基线"
+      label: "确认 -> API设计"
+
+    - edge_id: "e_gate_to_db"
+      from: "meta_gate"
+      to: "db_design"
+      condition: "on_success"
+      data_flow: "确认的需求基线"
+      label: "确认 -> DB设计"
+
+    - edge_id: "e_api_to_review"
+      from: "api_design"
+      to: "design_review"
+      condition: "on_success"
+      data_flow: "OpenAPI规范 + 移动端ADR"
+      label: "API设计 -> 评审"
+
+    - edge_id: "e_db_to_review"
+      from: "db_design"
+      to: "design_review"
+      condition: "on_success"
+      data_flow: "DDL + ER图 + 索引策略"
+      label: "DB设计 -> 评审"
+
+    - edge_id: "e_review_to_dev"
+      from: "design_review"
+      to: "develop_and_test"
+      condition: "on_success"
+      data_flow: "评审通过的设计"
+      label: "评审 -> 开发测试"
+
+    - edge_id: "e_dev_retry"
+      from: "develop_and_test"
+      to: "develop_and_test"
+      condition: "on_failure"
+      data_flow: "失败原因 + 修正指令"
+      label: "开发测试 自修正"
+
+    - edge_id: "e_dev_to_deliver"
+      from: "develop_and_test"
+      to: "deliver"
+      condition: "on_success"
+      data_flow: "可运行代码 + 测试报告"
+      label: "开发测试 -> 交付"
+
+    - edge_id: "e_deliver_to_gate"
+      from: "deliver"
+      to: "gate_acceptance"
+      condition: "on_success"
+      data_flow: "完整交付物"
+      label: "交付 -> 验收"
+
+  gates:
+    - gate_id: "META_GATE"
+      after_node: "req_analysis"
+      type: "USER_CONFIRM"
+      description: "确认需求分析结论"
+
+    - gate_id: "GATE_ACCEPTANCE"
+      after_node: "deliver"
+      type: "USER_CONFIRM"
+      description: "确认交付物满足需求"
+
+  expert_panel_summary:
+    - expert: "REQ"
+      intensity: "STANDARD"
+      reason: "始终激活"
+    - expert: "ARCH"
+      intensity: "STANDARD"
+      reason: "API设计域>=0.7，移动端适配需架构评审"
+    - expert: "DB"
+      intensity: "STANDARD"
+      reason: "数据库域涉及用户数据存储和查询优化"
+    - expert: "BE"
+      intensity: "STANDARD"
+      reason: "核心后端开发"
+    - expert: "SEC"
+      intensity: "STANDARD"
+      reason: "Token认证触发SF-03"
+    - expert: "QA"
+      intensity: "STANDARD"
+      reason: "中复杂度需测试保障"
+    - expert: "OPS"
+      intensity: "LIGHT"
+      reason: "轻量级部署指导"

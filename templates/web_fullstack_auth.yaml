@@ -1,0 +1,483 @@
+# =============================================================================
+# OmniPM v2.1.0 — 开发型DAG模板：Web全栈+认证授权 | 风险等级：中高 | 复杂度：中高 | 节点数：9~12 | 门控数：4
+# =============================================================================
+template:
+  id: "web_fullstack_auth"
+  name: "Web全栈应用（含认证授权）"
+  schema_version: "2.1.0"
+  project_type: "开发型"
+  risk_level: ["medium", "high"]
+  complexity: ["medium", "high"]
+  estimated_nodes: [12, 14]
+  description: >
+    适用于需要完整用户认证和权限管理的Web全栈项目。
+    典型场景：SaaS多租户平台、企业管理系统、电商平台、社交应用。
+    默认技术栈：React/Vue + RESTful/GraphQL + PostgreSQL + Redis + JWT/OAuth2.0。
+
+  design_dimensions:
+    - dimension: "安全设计"
+      depth: "DEEP"
+      reason: "涉及用户认证授权、会话管理、多租户隔离，触发SF-01/SF-03/SF-04"
+    - dimension: "数据架构"
+      depth: "DEEP"
+      reason: "含用户/角色/权限多表关联，多租户数据隔离策略"
+    - dimension: "性能与伸缩"
+      depth: "STANDARD"
+      reason: "多用户并发，需缓存策略和数据库连接优化"
+    - dimension: "部署运维"
+      depth: "STANDARD"
+      reason: "前后端分离+多环境+CI/CD+密钥管理"
+    - dimension: "可观测性"
+      depth: "STANDARD"
+      reason: "全链路日志+审计日志+安全事件监控"
+    - dimension: "记忆层/状态管理"
+      depth: "STANDARD"
+      reason: "JWT Token管理+前端状态+Redis会话/缓存"
+    - dimension: "合规隐私"
+      depth: "LIGHT"
+      reason: "PII数据存储需基础合规审查"
+
+  nodes:
+    - node_id: "req_analysis"
+      name: "需求分析"
+      node_type: "ANALYSIS"
+      domain: "需求管理"
+      depends_on: []
+      expert_panel:
+        - expert: "REQ"
+          intensity: "STANDARD"
+          focus: "梳理用户角色与权限矩阵、功能清单、多租户需求（如有）、认证场景"
+          output_requirement: "输出用户故事地图 + 角色权限矩阵 + 核心实体ER草图 + 认证场景清单"
+      success_criteria:
+        - "所有用户角色（>=3个）和权限级别已定义"
+        - "认证场景覆盖：注册/登录/登出/密码重置/Token刷新"
+        - "多租户隔离需求明确（如有）"
+      estimated_tokens:
+        input: 2000
+        output: 4000
+      max_retries: 3
+
+    - node_id: "meta_gate"
+      name: "META-GATE需求确认"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["req_analysis"]
+      expert_panel:
+      success_criteria:
+        - "用户确认需求分析结论"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+    - node_id: "api_design"
+      name: "API契约设计"
+      node_type: "DESIGN"
+      domain: "API设计"
+      depends_on: ["meta_gate"]
+      expert_panel:
+        - expert: "ARCH"
+          intensity: "DEEP"
+          focus: "API版本策略、RESTful/GraphQL路由、分页规范、错误码体系、API安全头配置"
+          output_requirement: "输出OpenAPI 3.0规范 + API安全设计ADR"
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "服务分层架构、认证中间件链、权限拦截器、多租户数据源路由"
+          output_requirement: "输出模块划分图 + 认证授权流程图 + 核心业务逻辑伪代码"
+      success_criteria:
+        - "所有端点有完整OpenAPI规范（含安全schema）"
+        - "认证相关端点（/auth/*）设计完成"
+        - "权限模型（RBAC/ABAC）已选择并文档化"
+      estimated_tokens:
+        input: 2500
+        output: 6000
+      max_retries: 3
+
+    - node_id: "db_design"
+      name: "数据库Schema设计"
+      node_type: "DESIGN"
+      domain: "数据库"
+      depends_on: ["meta_gate"]
+      expert_panel:
+        - expert: "DB"
+          intensity: "DEEP"
+          focus: "用户/角色/权限表设计、多租户隔离策略（独立DB/Schema/行级）、索引策略"
+          output_requirement: "输出DDL脚本 + ER图 + 多租户数据隔离方案 + 索引策略文档"
+      success_criteria:
+        - "用户认证相关表（users/roles/permissions/sessions）完整定义"
+        - "多租户隔离策略明确且有DDL支撑"
+        - "敏感字段（密码哈希/Token）存储方案安全合规"
+      estimated_tokens:
+        input: 2000
+        output: 5000
+      max_retries: 3
+
+    - node_id: "fe_design"
+      name: "前端架构设计"
+      node_type: "DESIGN"
+      domain: "前端"
+      depends_on: ["meta_gate"]
+      expert_panel:
+        - expert: "FE"
+          intensity: "STANDARD"
+          focus: "组件树+路由守卫、Auth Context设计、Token管理（存储/刷新/过期处理）、XSS/CSRF防护"
+          output_requirement: "输出组件树图 + 路由配置（含守卫逻辑） + 认证状态管理方案 + 前端安全策略"
+      success_criteria:
+        - "路由守卫覆盖所有需认证页面"
+        - "Token存储方案安全（HttpOnly Cookie或安全内存）"
+        - "XSS/CSRF防护策略已定义"
+      estimated_tokens:
+        input: 2000
+        output: 4500
+      max_retries: 3
+
+    - node_id: "security_design"
+      name: "安全纵深设计"
+      node_type: "DESIGN"
+      domain: "安全合规"
+      depends_on: ["api_design", "db_design", "fe_design"]
+      expert_panel:
+        - expert: "SEC"
+          intensity: "DEEP"
+          focus: "认证方案（JWT/OAuth2.0/Passkey）、授权模型（RBAC+ABAC）、会话管理、密钥轮转、审计日志"
+          output_requirement: "输出安全架构文档 + 威胁模型 + OWASP TOP10防护清单 + 密钥管理方案"
+      success_criteria:
+        - "认证方案已选定且有ADR"
+        - "威胁模型覆盖>=8个攻击场景"
+        - "OWASP TOP10每项有对应防护措施"
+        - "密钥轮转策略已定义"
+      estimated_tokens:
+        input: 3000
+        output: 6000
+      max_retries: 3
+
+    - node_id: "security_review"
+      name: "安全专项评审"
+      node_type: "REVIEW"
+      domain: "安全合规"
+      depends_on: ["security_design"]
+      expert_panel:
+        - expert: "SEC"
+          intensity: "DEEP"
+          focus: "逐项审查认证链路、授权逻辑、数据加密、注入防护、CSRF/XSS、会话安全"
+          output_requirement: "输出安全评审报告（>=5条建议 + 严重等级 + 修正方案）"
+      success_criteria:
+        - "所有P0安全漏洞已修正"
+        - "认证/授权逻辑经完整审查"
+        - "OWASP TOP10全项检查通过"
+      estimated_tokens:
+        input: 2500
+        output: 5000
+      max_retries: 3
+
+    - node_id: "design_review"
+      name: "设计联合评审"
+      node_type: "REVIEW"
+      domain: "设计评审"
+      depends_on: ["security_review"]
+      expert_panel:
+        - expert: "ARCH"
+          intensity: "STANDARD"
+          focus: "评审全栈架构、前后端契约、模块解耦度"
+          output_requirement: "输出>=3条架构建议 + 严重等级"
+        - expert: "DB"
+          intensity: "STANDARD"
+          focus: "评审数据模型和查询性能"
+          output_requirement: "输出>=3条数据层建议 + 严重等级"
+        - expert: "FE"
+          intensity: "STANDARD"
+          focus: "评审前端架构和安全实现"
+          output_requirement: "输出>=3条前端建议 + 严重等级"
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "评审API和业务逻辑"
+          output_requirement: "输出>=3条后端建议 + 严重等级"
+      success_criteria:
+        - "所有P0/P1问题已修正或记录"
+        - "每位专家输出>=最低数量建议"
+      estimated_tokens:
+        input: 3500
+        output: 7000
+      max_retries: 3
+
+    - node_id: "gate_design"
+      name: "GATE-DESIGN设计确认"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["design_review"]
+      expert_panel:
+      success_criteria:
+        - "用户确认完整设计方案"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+    - node_id: "develop"
+      name: "全栈开发实现"
+      node_type: "DEVELOP"
+      domain: "全栈开发"
+      depends_on: ["gate_design"]
+      expert_panel:
+        - expert: "FE"
+          intensity: "STANDARD"
+          focus: "实现前端组件、路由守卫、Auth Context、API对接"
+          output_requirement: "输出可运行前端代码 + 组件测试"
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "实现API、认证中间件、权限拦截器、业务逻辑"
+          output_requirement: "输出可运行后端代码 + 服务端测试"
+      success_criteria:
+        - "前后端可独立启动"
+        - "认证流程（注册/登录/Token刷新）端到端可用"
+        - "权限控制正确拦截未授权请求"
+      estimated_tokens:
+        input: 5000
+        output: 12000
+      max_retries: 3
+
+    - node_id: "security_test"
+      name: "安全测试"
+      node_type: "TEST"
+      domain: "安全合规"
+      depends_on: ["develop"]
+      expert_panel:
+        - expert: "SEC"
+          intensity: "DEEP"
+          focus: "渗透测试：SQL注入/XSS/CSRF/越权/会话劫持/JWT攻击/暴力破解"
+          output_requirement: "输出渗透测试报告 + 漏洞清单 + 修复建议"
+        - expert: "QA"
+          intensity: "DEEP"
+          focus: "编写认证场景测试：正常流程/异常流程/Token过期/并发登录/权限边界"
+          output_requirement: "输出安全测试用例矩阵 + 自动化安全测试脚本"
+      success_criteria:
+        - "OWASP TOP10全项安全测试通过"
+        - "认证场景覆盖>=10个用例"
+        - "无P0/P1安全漏洞"
+        - "Token刷新和过期处理正确"
+      estimated_tokens:
+        input: 3000
+        output: 7000
+      max_retries: 3
+
+    - node_id: "test"
+      name: "集成测试与验收"
+      node_type: "TEST"
+      domain: "测试策略"
+      depends_on: ["security_test"]
+      expert_panel:
+        - expert: "QA"
+          intensity: "STANDARD"
+          focus: "端到端测试、API集成测试、性能基线测试"
+          output_requirement: "输出测试报告 + 覆盖率报告 + 性能基线"
+      success_criteria:
+        - "核心用户旅程>=5条有E2E测试"
+        - "API集成测试覆盖率>=90%"
+        - "性能基线达标"
+      estimated_tokens:
+        input: 2500
+        output: 6000
+      max_retries: 3
+
+    - node_id: "deliver"
+      name: "交付与文档"
+      node_type: "DELIVER"
+      domain: "项目管理"
+      depends_on: ["test"]
+      expert_panel:
+      success_criteria:
+        - "产出前后端README + API文档"
+        - "产出安全架构文档 + 威胁模型"
+        - "产出PROJECT_MEMORY.md和PROJECT_DECISIONS.md"
+        - "产出Dockerfile + docker-compose + CI/CD配置"
+      estimated_tokens:
+        input: 1500
+        output: 3000
+      max_retries: 3
+
+    - node_id: "gate_acceptance"
+      name: "GATE-ACCEPTANCE交付验收"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["deliver"]
+      expert_panel:
+      success_criteria:
+        - "用户确认交付物满足需求"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+  edges:
+    - edge_id: "e_req_to_gate"
+      from: "req_analysis"
+      to: "meta_gate"
+      condition: "on_success"
+      data_flow: "用户故事地图 + 角色权限矩阵 + 认证场景清单"
+      label: "需求 -> META-GATE"
+
+    - edge_id: "e_gate_to_api"
+      from: "meta_gate"
+      to: "api_design"
+      condition: "on_success"
+      data_flow: "确认的需求基线"
+      label: "确认 -> API设计"
+
+    - edge_id: "e_gate_to_db"
+      from: "meta_gate"
+      to: "db_design"
+      condition: "on_success"
+      data_flow: "确认的需求基线 + 实体清单"
+      label: "确认 -> DB设计"
+
+    - edge_id: "e_gate_to_fe"
+      from: "meta_gate"
+      to: "fe_design"
+      condition: "on_success"
+      data_flow: "确认的需求基线 + 用户旅程"
+      label: "确认 -> 前端设计"
+
+    - edge_id: "e_api_to_sec"
+      from: "api_design"
+      to: "security_design"
+      condition: "on_success"
+      data_flow: "API规范 + 认证端点设计"
+      label: "API设计 -> 安全设计"
+
+    - edge_id: "e_db_to_sec"
+      from: "db_design"
+      to: "security_design"
+      condition: "on_success"
+      data_flow: "用户/权限表结构 + 多租户方案"
+      label: "DB设计 -> 安全设计"
+
+    - edge_id: "e_fe_to_sec"
+      from: "fe_design"
+      to: "security_design"
+      condition: "on_success"
+      data_flow: "前端认证方案 + Token管理策略"
+      label: "前端设计 -> 安全设计"
+
+    - edge_id: "e_sec_to_review"
+      from: "security_design"
+      to: "security_review"
+      condition: "on_success"
+      data_flow: "安全架构文档 + 威胁模型 + OWASP清单"
+      label: "安全设计 -> 安全评审"
+
+    - edge_id: "e_sec_review_to_design"
+      from: "security_review"
+      to: "design_review"
+      condition: "on_success"
+      data_flow: "安全评审通过报告"
+      label: "安全评审 -> 联合评审"
+
+    - edge_id: "e_review_to_gate"
+      from: "design_review"
+      to: "gate_design"
+      condition: "on_success"
+      data_flow: "评审通过的完整设计"
+      label: "评审 -> 设计确认"
+
+    - edge_id: "e_gate_to_dev"
+      from: "gate_design"
+      to: "develop"
+      condition: "on_success"
+      data_flow: "确认的设计基线"
+      label: "确认 -> 开发"
+
+    - edge_id: "e_dev_retry"
+      from: "develop"
+      to: "develop"
+      condition: "on_failure"
+      data_flow: "失败原因 + 修正指令（最多3次）"
+      label: "开发 自修正"
+
+    - edge_id: "e_dev_to_sec_test"
+      from: "develop"
+      to: "security_test"
+      condition: "on_success"
+      data_flow: "可运行前后端代码 + 认证授权实现"
+      label: "开发 -> 安全测试"
+
+    - edge_id: "e_sec_test_retry"
+      from: "security_test"
+      to: "develop"
+      condition: "on_failure"
+      data_flow: "安全漏洞报告 + 回退修正"
+      label: "安全测试失败 -> 开发修正"
+
+    - edge_id: "e_sec_test_to_test"
+      from: "security_test"
+      to: "test"
+      condition: "on_success"
+      data_flow: "安全测试通过报告"
+      label: "安全测试 -> 集成测试"
+
+    - edge_id: "e_test_retry"
+      from: "test"
+      to: "develop"
+      condition: "on_failure"
+      data_flow: "测试失败报告 + 回退修正"
+      label: "测试失败 -> 开发修正"
+
+    - edge_id: "e_test_to_deliver"
+      from: "test"
+      to: "deliver"
+      condition: "on_success"
+      data_flow: "测试报告 + 覆盖率数据"
+      label: "测试通过 -> 交付"
+
+    - edge_id: "e_deliver_to_gate"
+      from: "deliver"
+      to: "gate_acceptance"
+      condition: "on_success"
+      data_flow: "完整交付物"
+      label: "交付 -> 验收"
+
+  gates:
+    - gate_id: "META_GATE"
+      after_node: "req_analysis"
+      type: "USER_CONFIRM"
+      description: "确认需求分析结论"
+
+    - gate_id: "GATE_DESIGN"
+      after_node: "design_review"
+      type: "USER_CONFIRM"
+      description: "确认完整设计方案（含安全方案）"
+
+    - gate_id: "GATE_SECURITY"
+      after_node: "security_review"
+      type: "USER_CONFIRM"
+      description: "确认安全评审结论（高风险项目强制安全GATE）"
+
+    - gate_id: "GATE_ACCEPTANCE"
+      after_node: "deliver"
+      type: "USER_CONFIRM"
+      description: "确认最终交付物满足需求"
+
+  expert_panel_summary:
+    - expert: "REQ"
+      intensity: "STANDARD"
+      reason: "始终激活"
+    - expert: "ARCH"
+      intensity: "DEEP"
+      reason: "中高风险全栈项目，架构决策影响深远"
+    - expert: "DB"
+      intensity: "DEEP"
+      reason: "多租户+权限模型数据架构复杂"
+    - expert: "FE"
+      intensity: "STANDARD"
+      reason: "前端含认证状态管理和安全防护"
+    - expert: "BE"
+      intensity: "STANDARD"
+      reason: "API含认证中间件和权限拦截"
+    - expert: "SEC"
+      intensity: "DEEP"
+      reason: "涉及PII/认证/授权，触发SF-01/SF-03/SF-04"
+    - expert: "QA"
+      intensity: "DEEP"
+      reason: "高风险需深度测试（安全测试+集成测试）"
+    - expert: "OPS"
+      intensity: "STANDARD"
+      reason: "含密钥管理和多环境部署"

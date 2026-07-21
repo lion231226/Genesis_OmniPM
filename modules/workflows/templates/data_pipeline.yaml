@@ -1,0 +1,353 @@
+# =============================================================================
+# OmniPM v2.1.0 — 开发型DAG模板：数据管道 | 风险等级：中 | 复杂度：中 | 节点数：6~8 | 门控数：3
+# =============================================================================
+template:
+  id: "data_pipeline"
+  name: "数据管道/ETL服务"
+  schema_version: "2.1.0"
+  project_type: "开发型"
+  risk_level: ["medium"]
+  complexity: ["medium"]
+  estimated_nodes: [8, 10]
+  description: >
+    适用于数据采集、转换、存储和分发的管道项目。
+    典型场景：数据仓库ETL、实时数据流处理、日志聚合分析、数据同步服务、BI数据管道。
+    默认技术栈：Python/Go + Apache Kafka/RabbitMQ + PostgreSQL/ClickHouse + Redis + Airflow/Temporal。
+
+  design_dimensions:
+    - dimension: "数据架构"
+      depth: "DEEP"
+      reason: "数据模型设计、存储分层（ODS/DWD/DWS）、数据质量校验、Schema演化"
+    - dimension: "性能与伸缩"
+      depth: "DEEP"
+      reason: "数据吞吐量预估、分区策略、并行处理、反压机制"
+    - dimension: "可观测性"
+      depth: "DEEP"
+      reason: "数据血缘追踪、管道监控、数据质量告警、延迟监控"
+    - dimension: "安全设计"
+      depth: "LIGHT"
+      reason: "数据访问控制和传输加密，如涉及PII则升级为STANDARD"
+    - dimension: "部署运维"
+      depth: "STANDARD"
+      reason: "消息队列/调度器/存储集群的部署和运维"
+    - dimension: "合规隐私"
+      depth: "SKIP"
+      reason: "不直接面向用户，无合规强制要求（数据源合规由上游保障）"
+    - dimension: "记忆层/状态管理"
+      depth: "STANDARD"
+      reason: "消息队列Offset管理、检查点机制、幂等性保障"
+
+  nodes:
+    - node_id: "req_analysis"
+      name: "需求分析"
+      node_type: "ANALYSIS"
+      domain: "需求管理"
+      depends_on: []
+      expert_panel:
+        - expert: "REQ"
+          intensity: "STANDARD"
+          focus: "梳理数据源、数据目标、转换逻辑、数据量预估、延迟SLA"
+          output_requirement: "输出数据流图 + 数据源/目标清单 + 转换逻辑矩阵 + SLA定义"
+      success_criteria:
+        - "所有数据源（>=2个）和数据目标已识别"
+        - "数据量级预估（日增量/峰值）已有"
+        - "延迟SLA（实时/准实时/批量）已定义"
+        - "数据质量要求已明确"
+      estimated_tokens:
+        input: 1500
+        output: 3500
+      max_retries: 3
+
+    - node_id: "meta_gate"
+      name: "META-GATE需求确认"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["req_analysis"]
+      expert_panel:
+      success_criteria:
+        - "用户确认需求分析结论"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+    - node_id: "data_modeling"
+      name: "数据建模与存储设计"
+      node_type: "DESIGN"
+      domain: "数据架构"
+      depends_on: ["meta_gate"]
+      expert_panel:
+        - expert: "DB"
+          intensity: "DEEP"
+          focus: "数据分层设计（ODS/DWD/DWS/ADS）、Schema演化策略、分区键选择、存储引擎选型"
+          output_requirement: "输出数据分层架构图 + 核心表DDL + Schema演化方案 + 存储选型ADR"
+        - expert: "ARCH"
+          intensity: "STANDARD"
+          focus: "管道架构设计（批处理/流处理/混合）、消息队列选型、调度器选型"
+          output_requirement: "输出管道架构图 + 技术选型ADR + 数据流拓扑"
+      success_criteria:
+        - "数据分层架构已定义且合理"
+        - "核心表（>=5张）DDL完成"
+        - "Schema演化策略（向前兼容）已定义"
+        - "存储引擎和消息队列选型有ADR"
+      estimated_tokens:
+        input: 2500
+        output: 6000
+      max_retries: 3
+
+    - node_id: "pipeline_design"
+      name: "管道逻辑设计"
+      node_type: "DESIGN"
+      domain: "性能与伸缩"
+      depends_on: ["data_modeling"]
+      expert_panel:
+        - expert: "ARCH"
+          intensity: "STANDARD"
+          focus: "并行度设计、分区策略、反压机制、检查点策略、错误处理与死信队列"
+          output_requirement: "输出管道拓扑图 + 并行度规划 + 错误处理策略文档"
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "数据转换逻辑（过滤/聚合/Join/ enrich）、幂等性设计、数据质量校验规则"
+          output_requirement: "输出转换逻辑伪代码 + 幂等键策略 + 数据质量规则清单"
+      success_criteria:
+        - "管道拓扑明确且无循环依赖"
+        - "并行度/分区策略已规划"
+        - "检查点/Offset管理方案已设计"
+        - "死信队列和重试策略已定义"
+      estimated_tokens:
+        input: 2500
+        output: 5500
+      max_retries: 3
+
+    - node_id: "design_review"
+      name: "设计联合评审"
+      node_type: "REVIEW"
+      domain: "设计评审"
+      depends_on: ["pipeline_design"]
+      expert_panel:
+        - expert: "ARCH"
+          intensity: "STANDARD"
+          focus: "评审管道架构可扩展性、反压机制、容错设计"
+          output_requirement: "输出>=3条架构建议 + 严重等级"
+        - expert: "DB"
+          intensity: "DEEP"
+          focus: "评审数据模型合理性、Schema演化、存储引擎性能"
+          output_requirement: "输出>=5条数据层建议 + 严重等级"
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "评审数据转换逻辑和异常处理"
+          output_requirement: "输出>=3条后端建议 + 严重等级"
+        - expert: "SEC"
+          intensity: "LIGHT"
+          focus: "快速扫描数据传输安全和访问控制"
+          output_requirement: "输出>=2条安全建议"
+      success_criteria:
+        - "所有P0问题修正"
+        - "每位专家>=最低数量建议"
+      estimated_tokens:
+        input: 3000
+        output: 6000
+      max_retries: 3
+
+    - node_id: "gate_design"
+      name: "GATE-DESIGN设计确认"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["design_review"]
+      expert_panel:
+      success_criteria:
+        - "用户确认设计方案"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+    - node_id: "develop"
+      name: "管道开发实现"
+      node_type: "DEVELOP"
+      domain: "数据开发"
+      depends_on: ["gate_design"]
+      expert_panel:
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "实现数据摄取/转换/加载逻辑、消息队列生产者/消费者、数据质量校验"
+          output_requirement: "输出可运行管道代码 + 单元测试（覆盖率>=80%）"
+        - expert: "DB"
+          intensity: "STANDARD"
+          focus: "实现Schema迁移脚本、数据分区管理、存储优化"
+          output_requirement: "输出迁移脚本 + 存储配置"
+      success_criteria:
+        - "管道核心逻辑完整可运行"
+        - "数据质量校验规则集成"
+        - "单元测试覆盖率>=80%"
+        - "Schema迁移脚本可执行"
+      estimated_tokens:
+        input: 4000
+        output: 10000
+      max_retries: 3
+
+    - node_id: "test"
+      name: "管道测试与验证"
+      node_type: "TEST"
+      domain: "测试策略"
+      depends_on: ["develop"]
+      expert_panel:
+        - expert: "QA"
+          intensity: "STANDARD"
+          focus: "管道端到端测试、数据质量验证、性能基准测试、故障恢复测试"
+          output_requirement: "输出测试报告 + 数据质量报告 + 性能基线 + 故障恢复测试结果"
+      success_criteria:
+        - "端到端管道测试通过（>=3条数据流）"
+        - "数据质量校验100%覆盖"
+        - "性能吞吐量达标（SLA内）"
+        - "故障恢复测试通过（消息重放/Offset重置）"
+      estimated_tokens:
+        input: 3000
+        output: 7000
+      max_retries: 3
+
+    - node_id: "deliver"
+      name: "交付与文档"
+      node_type: "DELIVER"
+      domain: "项目管理"
+      depends_on: ["test"]
+      expert_panel:
+      success_criteria:
+        - "产出管道架构文档 + 数据流图"
+        - "产出运维手册（含监控/告警/故障处理）"
+        - "产出PROJECT_MEMORY.md + PROJECT_DECISIONS.md"
+        - "产出部署配置（Docker/调度器DAG）"
+      estimated_tokens:
+        input: 1500
+        output: 3000
+      max_retries: 3
+
+    - node_id: "gate_acceptance"
+      name: "GATE-ACCEPTANCE交付验收"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["deliver"]
+      expert_panel:
+      success_criteria:
+        - "用户确认交付物满足需求"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+  edges:
+    - edge_id: "e_req_to_gate"
+      from: "req_analysis"
+      to: "meta_gate"
+      condition: "on_success"
+      data_flow: "数据流图 + 数据源/目标清单 + SLA定义"
+      label: "需求 -> META-GATE"
+
+    - edge_id: "e_gate_to_model"
+      from: "meta_gate"
+      to: "data_modeling"
+      condition: "on_success"
+      data_flow: "确认的需求基线"
+      label: "确认 -> 数据建模"
+
+    - edge_id: "e_model_to_pipe"
+      from: "data_modeling"
+      to: "pipeline_design"
+      condition: "on_success"
+      data_flow: "数据分层架构 + 核心表DDL + 技术选型ADR"
+      label: "数据建模 -> 管道设计"
+
+    - edge_id: "e_pipe_to_review"
+      from: "pipeline_design"
+      to: "design_review"
+      condition: "on_success"
+      data_flow: "管道拓扑 + 并行度规划 + 转换逻辑 + 错误处理策略"
+      label: "管道设计 -> 评审"
+
+    - edge_id: "e_review_to_gate"
+      from: "design_review"
+      to: "gate_design"
+      condition: "on_success"
+      data_flow: "评审通过的完整设计"
+      label: "评审 -> 设计确认"
+
+    - edge_id: "e_gate_to_dev"
+      from: "gate_design"
+      to: "develop"
+      condition: "on_success"
+      data_flow: "确认的设计基线"
+      label: "确认 -> 开发"
+
+    - edge_id: "e_dev_retry"
+      from: "develop"
+      to: "develop"
+      condition: "on_failure"
+      data_flow: "失败原因 + 修正指令"
+      label: "开发 自修正"
+
+    - edge_id: "e_dev_to_test"
+      from: "develop"
+      to: "test"
+      condition: "on_success"
+      data_flow: "管道代码 + Schema迁移脚本"
+      label: "开发 -> 测试"
+
+    - edge_id: "e_test_retry"
+      from: "test"
+      to: "develop"
+      condition: "on_failure"
+      data_flow: "测试失败报告 + 回退修正"
+      label: "测试失败 -> 开发修正"
+
+    - edge_id: "e_test_to_deliver"
+      from: "test"
+      to: "deliver"
+      condition: "on_success"
+      data_flow: "测试报告 + 数据质量报告 + 性能基线"
+      label: "测试通过 -> 交付"
+
+    - edge_id: "e_deliver_to_gate"
+      from: "deliver"
+      to: "gate_acceptance"
+      condition: "on_success"
+      data_flow: "完整交付物"
+      label: "交付 -> 验收"
+
+  gates:
+    - gate_id: "META_GATE"
+      after_node: "req_analysis"
+      type: "USER_CONFIRM"
+      description: "确认需求分析结论"
+
+    - gate_id: "GATE_DESIGN"
+      after_node: "design_review"
+      type: "USER_CONFIRM"
+      description: "确认数据管道设计方案"
+
+    - gate_id: "GATE_ACCEPTANCE"
+      after_node: "deliver"
+      type: "USER_CONFIRM"
+      description: "确认交付物满足需求"
+
+  expert_panel_summary:
+    - expert: "REQ"
+      intensity: "STANDARD"
+      reason: "始终激活"
+    - expert: "ARCH"
+      intensity: "STANDARD"
+      reason: "管道架构设计和技术选型"
+    - expert: "DB"
+      intensity: "DEEP"
+      reason: "数据建模为核心域，含存储分层和Schema演化"
+    - expert: "BE"
+      intensity: "STANDARD"
+      reason: "数据转换逻辑和管道开发"
+    - expert: "SEC"
+      intensity: "LIGHT"
+      reason: "数据传输安全，如涉及PII则升级"
+    - expert: "QA"
+      intensity: "STANDARD"
+      reason: "中风险需数据质量验证和性能测试"
+    - expert: "OPS"
+      intensity: "STANDARD"
+      reason: "消息队列/调度器/存储集群运维"

@@ -1,0 +1,45 @@
+# OmniPM v2.1.0 — 方案型DAG模板：商业策略方案 | 风险等级：低-中 | 复杂度：中 | 节点数：7 | 门控数：2
+template:
+  id: "solution_strategy"
+  name: "商业策略方案"
+  schema_version: "2.1.0"
+  project_type: "方案型"
+  risk_level: ["low", "medium"]
+  complexity: ["medium"]
+  estimated_nodes: [6, 8]
+  description: "适用于商业策略分析、技术方案论证、市场进入策略和咨询报告类项目。默认产出：市场分析报告 + 策略方案文档 + 风险评估矩阵 + 执行路线图。"
+  design_dimensions:
+    - { dimension: "数据架构", depth: "LIGHT", reason: "方案文档结构设计——章节组织、数据可视化规范" }
+    - { dimension: "安全设计", depth: "LIGHT", reason: "方案信息安全——如涉商业机密需访问控制建议" }
+    - { dimension: "合规与隐私", depth: "LIGHT", reason: "行业合规分析——识别目标行业的监管要求和准入门槛" }
+  nodes:
+    - { node_id: "req_analysis", name: "需求分析", node_type: "ANALYSIS", domain: "需求管理", depends_on: [],
+        expert_panel: [{ expert: "REQ", intensity: "STANDARD", focus: "项目背景、核心问题陈述、目标受众、交付物范围", output_requirement: "输出问题陈述 + 范围界定(In/Out Scope) + 成功标准" }],
+        success_criteria: ["核心问题一句话清晰陈述", "范围边界明确(In>=5/Out>=3)", "成功标准可量化(>=3条)"], estimated_tokens: { input: 1500, output: 3000 }, max_retries: 3 }
+    - { node_id: "meta_gate", name: "META-GATE需求确认", node_type: "GATE", domain: "项目管理", depends_on: ["req_analysis"],
+        expert_panel: [], success_criteria: ["用户确认需求分析结论"], estimated_tokens: { input: 500, output: 500 }, max_retries: 3 }
+    - { node_id: "market_research", name: "市场研究与竞品分析", node_type: "ANALYSIS", domain: "市场分析", depends_on: ["meta_gate"],
+        expert_panel: [{ expert: "MARKET_ANALYST", intensity: "DEEP", focus: "竞品横向对比、TAM/SAM/SOM、SWOT、PESTEL", output_requirement: "输出竞品矩阵(>=5家) + TAM/SAM/SOM + SWOT + PESTEL摘要" }],
+        success_criteria: ["竞品>=3直接+2间接", "TAM/SAM/SOM有数据来源", "SWOT每象限>=3条目"], estimated_tokens: { input: 2500, output: 6000 }, max_retries: 3 }
+    - { node_id: "strategy_design", name: "策略方案设计", node_type: "DESIGN", domain: "策略设计", depends_on: ["market_research"],
+        expert_panel: [{ expert: "ARCH", intensity: "STANDARD", focus: "MECE分解、方案选项评估矩阵、实施路线图", output_requirement: "输出Issue Tree + 方案评估矩阵 + 实施路线图 + 资源估算" },
+          { expert: "MARKET_ANALYST", intensity: "LIGHT", focus: "校验策略假设的竞争可行性", output_requirement: "输出策略假设校验意见(>=3条)" }],
+        success_criteria: ["MECE原则遵循", "方案选项>=2个", "路线图含>=4里程碑"], estimated_tokens: { input: 3000, output: 7000 }, max_retries: 3 }
+    - { node_id: "risk_assessment", name: "风险评估与合规审查", node_type: "REVIEW", domain: "风险管理", depends_on: ["strategy_design"],
+        expert_panel: [{ expert: "SEC", intensity: "STANDARD", focus: "市场/运营/合规/技术四类风险识别与缓解", output_requirement: "输出风险评估矩阵(>=8场景) + 缓解策略表 + 合规清单" }],
+        success_criteria: ["覆盖>=4风险类别", "高风险项有独立缓解方案", "合规清单>=3项法规"], estimated_tokens: { input: 2000, output: 4500 }, max_retries: 3 }
+    - { node_id: "deliver", name: "交付与文档", node_type: "DELIVER", domain: "项目管理", depends_on: ["risk_assessment"],
+        expert_panel: [], success_criteria: ["产出完整策略报告", "产出市场分析报告", "产出风险评估矩阵", "产出演示文稿(<=20页)"], estimated_tokens: { input: 1500, output: 4000 }, max_retries: 3 }
+    - { node_id: "gate_acceptance", name: "GATE-ACCEPTANCE交付验收", node_type: "GATE", domain: "项目管理", depends_on: ["deliver"],
+        expert_panel: [], success_criteria: ["用户确认交付方案满足需求"], estimated_tokens: { input: 500, output: 500 }, max_retries: 3 }
+  edges:
+    - { edge_id: "e_req_to_gate", from: "req_analysis", to: "meta_gate", condition: "on_success", data_flow: "问题陈述+范围+成功标准", label: "需求→确认" }
+    - { edge_id: "e_gate_to_market", from: "meta_gate", to: "market_research", condition: "on_success", data_flow: "确认的需求基线", label: "确认→市场研究" }
+    - { edge_id: "e_market_to_strategy", from: "market_research", to: "strategy_design", condition: "on_success", data_flow: "竞品+SWOT+TAM/SAM/SOM", label: "市场→策略" }
+    - { edge_id: "e_strategy_to_risk", from: "strategy_design", to: "risk_assessment", condition: "on_success", data_flow: "策略框架+方案+路线图", label: "策略→风险评估" }
+    - { edge_id: "e_risk_retry", from: "risk_assessment", to: "strategy_design", condition: "on_failure", data_flow: "风险审查不通过", label: "风险→策略修正" }
+    - { edge_id: "e_risk_to_deliver", from: "risk_assessment", to: "deliver", condition: "on_success", data_flow: "审核通过", label: "风险→交付" }
+    - { edge_id: "e_deliver_to_gate", from: "deliver", to: "gate_acceptance", condition: "on_success", data_flow: "完整交付物", label: "交付→验收" }
+  gates:
+    - { gate_id: "META_GATE", after_node: "req_analysis", type: "USER_CONFIRM", description: "确认需求分析结论" }
+    - { gate_id: "GATE_ACCEPTANCE", after_node: "deliver", type: "USER_CONFIRM", description: "确认最终交付方案" }

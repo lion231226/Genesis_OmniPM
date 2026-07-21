@@ -1,0 +1,294 @@
+# =============================================================================
+# OmniPM v2.1.0 — 开发型DAG模板：Web API后端服务 | 风险等级：低 | 复杂度：低-中 | 节点数：5~7 | 门控数：2
+# =============================================================================
+template:
+  id: "web_api_backend"
+  name: "Web API后端服务"
+  schema_version: "2.1.0"
+  project_type: "开发型"
+  risk_level: ["low"]
+  complexity: ["low", "medium"]
+  estimated_nodes: [6, 8]
+  description: >
+    适用于纯后端API服务项目，无前端界面、无复杂认证授权。
+    典型场景：内部工具API、数据服务、Webhook接收器、简单CRUD服务。
+    默认技术栈：RESTful API + 关系型数据库 + 容器化部署。
+
+  design_dimensions:
+    - dimension: "数据架构"
+      depth: "STANDARD"
+      reason: "涉及数据库表结构设计和核心查询优化"
+    - dimension: "安全设计"
+      depth: "LIGHT"
+      reason: "API对外暴露触发SF-04强制激活安全专家，低风险快速扫描"
+    - dimension: "性能与伸缩"
+      depth: "LIGHT"
+      reason: "低并发场景，基础性能基线和连接池配置即可"
+    - dimension: "部署运维"
+      depth: "LIGHT"
+      reason: "简单容器化部署，Dockerfile + docker-compose满足需求"
+    - dimension: "可观测性"
+      depth: "LIGHT"
+      reason: "基础结构化日志 + 健康检查端点 + 关键指标埋点"
+    - dimension: "合规隐私"
+      depth: "SKIP"
+      reason: "内部工具/低风险项目无合规强制要求"
+    - dimension: "记忆层/状态管理"
+      depth: "SKIP"
+      reason: "无状态API服务，无需会话管理或缓存层"
+
+  nodes:
+    - node_id: "req_analysis"
+      name: "需求分析"
+      node_type: "ANALYSIS"
+      domain: "需求管理"
+      depends_on: []
+      expert_panel:
+        - expert: "REQ"
+          intensity: "STANDARD"
+          focus: "梳理API功能清单、数据实体识别、核心业务流程和边界条件"
+          output_requirement: "输出用户故事地图 + API端点清单（含HTTP动词） + 核心实体ER草图"
+      success_criteria:
+        - "所有API端点已明确命名、HTTP动词和请求/响应方向"
+        - "核心实体（>=3个）及其关系已识别"
+        - "至少覆盖正常流程和2个异常/边界场景"
+      estimated_tokens:
+        input: 1500
+        output: 3000
+      max_retries: 3
+
+    - node_id: "meta_gate"
+      name: "META-GATE需求确认"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["req_analysis"]
+      expert_panel:
+      success_criteria:
+        - "用户确认需求分析结论（含API清单和实体模型）"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+    - node_id: "api_design"
+      name: "API契约设计"
+      node_type: "DESIGN"
+      domain: "API设计"
+      depends_on: ["meta_gate"]
+      expert_panel:
+        - expert: "ARCH"
+          intensity: "STANDARD"
+          focus: "RESTful路由设计、版本策略、错误码体系、分页/排序/过滤规范"
+          output_requirement: "输出OpenAPI 3.0规范（YAML） + API设计ADR"
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "服务分层架构（Controller/Service/Repository）、中间件链设计、依赖注入"
+          output_requirement: "输出模块划分图 + 中间件清单 + 核心业务逻辑伪代码"
+      success_criteria:
+        - "所有API端点有完整的OpenAPI规范定义（含请求/响应schema）"
+        - "错误码体系覆盖>=8种业务异常场景"
+        - "分页/排序/过滤参数标准化且一致"
+      estimated_tokens:
+        input: 2000
+        output: 5000
+      max_retries: 3
+
+    - node_id: "db_design"
+      name: "数据库Schema设计"
+      node_type: "DESIGN"
+      domain: "数据库"
+      depends_on: ["meta_gate"]
+      expert_panel:
+        - expert: "DB"
+          intensity: "STANDARD"
+          focus: "表结构设计、索引策略、迁移方案、数据一致性保障"
+          output_requirement: "输出DDL脚本 + ER图（Mermaid） + 索引策略文档 + 迁移方案（含回滚）"
+      success_criteria:
+        - "所有实体表已定义字段类型、约束和默认值"
+        - "核心查询（>=5条）有对应索引覆盖"
+        - "迁移脚本包含UP（正向）和DOWN（回滚）"
+      estimated_tokens:
+        input: 1500
+        output: 4000
+      max_retries: 3
+
+    - node_id: "design_review"
+      name: "设计联合评审"
+      node_type: "REVIEW"
+      domain: "设计评审"
+      depends_on: ["api_design", "db_design"]
+      expert_panel:
+        - expert: "ARCH"
+          intensity: "STANDARD"
+          focus: "评审API设计一致性、模块解耦度、技术选型合理性和扩展性"
+          output_requirement: "输出>=3条架构建议 + P0/P1/P2严重等级标注"
+        - expert: "DB"
+          intensity: "STANDARD"
+          focus: "评审表结构规范性、索引设计合理性和查询性能预估"
+          output_requirement: "输出>=3条数据层建议 + 严重等级标注"
+        - expert: "SEC"
+          intensity: "LIGHT"
+          focus: "快速扫描API安全：输入校验、CORS、Rate Limiting、SQL注入防护"
+          output_requirement: "输出>=2条安全建议"
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "评审业务逻辑完备性、错误处理覆盖和分层合理性"
+          output_requirement: "输出>=3条后端建议 + 严重等级标注"
+      success_criteria:
+        - "所有P0问题已修正，P1问题已记录解决计划"
+        - "每位评审专家输出>=最低数量建议"
+      estimated_tokens:
+        input: 3500
+        output: 7000
+      max_retries: 3
+
+    - node_id: "develop_and_test"
+      name: "开发实现与测试"
+      node_type: "DEVELOP"
+      domain: "后端开发"
+      depends_on: ["design_review"]
+      expert_panel:
+        - expert: "BE"
+          intensity: "STANDARD"
+          focus: "编写API实现代码、数据库访问层、中间件链、全局错误处理"
+          output_requirement: "输出可运行源代码 + 单元测试（行覆盖率>=80%）"
+        - expert: "QA"
+          intensity: "STANDARD"
+          focus: "编写集成测试、API契约测试、边界场景和异常路径覆盖"
+          output_requirement: "输出测试用例矩阵 + 自动化测试脚本 + 覆盖率报告"
+      success_criteria:
+        - "所有API端点有对应的集成测试（>=1正向+1异常用例）"
+        - "单元测试行覆盖率>=80%，分支覆盖率>=60%"
+        - "核心业务流程有端到端测试覆盖"
+        - "无P0安全漏洞（SQL注入/XSS/敏感数据泄露）"
+      estimated_tokens:
+        input: 3000
+        output: 8000
+      max_retries: 3
+
+    - node_id: "deliver"
+      name: "交付与文档"
+      node_type: "DELIVER"
+      domain: "项目管理"
+      depends_on: ["develop_and_test"]
+      expert_panel:
+      success_criteria:
+        - "产出API文档（OpenAPI/Swagger UI可访问）"
+        - "产出README（含本地启动、环境变量说明、部署指南）"
+        - "产出PROJECT_MEMORY.md和PROJECT_DECISIONS.md"
+        - "产出Dockerfile和docker-compose.yml"
+      estimated_tokens:
+        input: 1000
+        output: 3000
+      max_retries: 3
+
+    - node_id: "gate_acceptance"
+      name: "GATE-ACCEPTANCE交付验收"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["deliver"]
+      expert_panel:
+      success_criteria:
+        - "用户确认所有交付物满足项目需求"
+      estimated_tokens:
+        input: 500
+        output: 500
+      max_retries: 3
+
+  edges:
+    - edge_id: "e_req_to_meta_gate"
+      from: "req_analysis"
+      to: "meta_gate"
+      condition: "on_success"
+      data_flow: "用户故事地图 + API端点清单 + 核心实体ER草图"
+      label: "需求分析 -> 用户确认"
+
+    - edge_id: "e_meta_gate_to_api"
+      from: "meta_gate"
+      to: "api_design"
+      condition: "on_success"
+      data_flow: "经用户确认的需求基线（API清单+实体模型）"
+      label: "确认 -> API设计"
+
+    - edge_id: "e_meta_gate_to_db"
+      from: "meta_gate"
+      to: "db_design"
+      condition: "on_success"
+      data_flow: "经用户确认的需求基线（API清单+实体模型）"
+      label: "确认 -> 数据库设计"
+
+    - edge_id: "e_api_to_review"
+      from: "api_design"
+      to: "design_review"
+      condition: "on_success"
+      data_flow: "OpenAPI 3.0规范 + API设计ADR + 模块划分图"
+      label: "API设计 -> 联合评审"
+
+    - edge_id: "e_db_to_review"
+      from: "db_design"
+      to: "design_review"
+      condition: "on_success"
+      data_flow: "DDL脚本 + ER图 + 索引策略文档 + 迁移方案"
+      label: "数据库设计 -> 联合评审"
+
+    - edge_id: "e_review_to_dev"
+      from: "design_review"
+      to: "develop_and_test"
+      condition: "on_success"
+      data_flow: "评审通过的API设计 + 数据库Schema + 修正后ADR"
+      label: "评审 -> 开发测试"
+
+    - edge_id: "e_dev_retry"
+      from: "develop_and_test"
+      to: "develop_and_test"
+      condition: "on_failure"
+      data_flow: "失败原因（CODE_BUG/DESIGN_FLAW） + 修正指令（最多3次）"
+      label: "开发测试 自修正（熔断限3次）"
+
+    - edge_id: "e_dev_to_deliver"
+      from: "develop_and_test"
+      to: "deliver"
+      condition: "on_success"
+      data_flow: "可运行源代码 + 测试报告 + 覆盖率数据"
+      label: "开发完成 -> 交付"
+
+    - edge_id: "e_deliver_to_gate"
+      from: "deliver"
+      to: "gate_acceptance"
+      condition: "on_success"
+      data_flow: "API文档 + README + Dockerfile + 项目记忆文件"
+      label: "交付 -> 验收GATE"
+
+  gates:
+    - gate_id: "META_GATE"
+      after_node: "req_analysis"
+      type: "USER_CONFIRM"
+      description: "确认需求分析结论和API端点清单"
+
+    - gate_id: "GATE_ACCEPTANCE"
+      after_node: "deliver"
+      type: "USER_CONFIRM"
+      description: "确认最终交付物满足项目需求"
+
+  expert_panel_summary:
+    - expert: "REQ"
+      intensity: "STANDARD"
+      reason: "始终激活——需求分析是所有项目的起点"
+    - expert: "ARCH"
+      intensity: "STANDARD"
+      reason: "API设计域weight>=0.7，需架构设计评审"
+    - expert: "DB"
+      intensity: "STANDARD"
+      reason: "数据库域涉及表结构设计和查询优化"
+    - expert: "BE"
+      intensity: "STANDARD"
+      reason: "API设计域为核心开发域"
+    - expert: "SEC"
+      intensity: "LIGHT"
+      reason: "API对外暴露触发SF-04强制激活安全专家"
+    - expert: "QA"
+      intensity: "STANDARD"
+      reason: "复杂度中等，需测试策略保障交付质量"
+    - expert: "OPS"
+      intensity: "LIGHT"
+      reason: "部署运维域weight=0.3，轻量级部署指导"

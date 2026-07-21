@@ -1,0 +1,42 @@
+# OmniPM v2.1.0 — 图文型DAG模板：SEO文章创作 | 风险等级：低 | 复杂度：低 | 节点数：5 | 门控数：2
+template:
+  id: "graphic_seo_article"
+  name: "SEO优化文章创作"
+  schema_version: "2.1.0"
+  project_type: "图文型"
+  risk_level: ["low"]
+  complexity: ["low"]
+  estimated_nodes: [5, 6]
+  description: "适用于SEO优化的图文内容创作。典型场景：博客SEO文章、落地页内容、产品介绍页。默认产出：SEO优化文章 + 元数据标签 + 配图文案 + 发布清单。"
+  design_dimensions:
+    - { dimension: "数据架构", depth: "LIGHT", reason: "内容结构设计——标题层级(H1-H6)、信息架构、内部链接拓扑" }
+    - { dimension: "安全设计", depth: "SKIP", reason: "图文内容发布不涉及安全架构设计" }
+    - { dimension: "合规与隐私", depth: "LIGHT", reason: "内容版权合规——素材授权、引用标注、原创性审查" }
+  nodes:
+    - { node_id: "topic_research", name: "选题与关键词调研", node_type: "ANALYSIS", domain: "SEO策略", depends_on: [],
+        expert_panel: [{ expert: "SEO_EXPERT", intensity: "STANDARD", focus: "关键词+长尾词调研、搜索意图分析、竞品差距分析", output_requirement: "输出关键词矩阵(核心>=3+长尾>=10) + 竞品差距表" },
+          { expert: "CONTENT_REVIEWER", intensity: "LIGHT", focus: "评估选题与品牌定位一致性", output_requirement: "输出选题适宜性评估(>=2条)" }],
+        success_criteria: ["核心关键词搜索量>=100/月", "搜索意图明确且匹配", "竞品>=3个已排名页面"], estimated_tokens: { input: 1500, output: 3500 }, max_retries: 3 }
+    - { node_id: "meta_gate", name: "META-GATE选题确认", node_type: "GATE", domain: "项目管理", depends_on: ["topic_research"],
+        expert_panel: [], success_criteria: ["用户确认选题方向和关键词策略"], estimated_tokens: { input: 500, output: 500 }, max_retries: 3 }
+    - { node_id: "content_creation", name: "文章创作与优化", node_type: "DEVELOP", domain: "内容创作", depends_on: ["meta_gate"],
+        expert_panel: [{ expert: "CONTENT_REVIEWER", intensity: "STANDARD", focus: "撰写SEO友好文章——Title/H标签/关键词嵌入/E-E-A-T信号", output_requirement: "输出完整文章(含Title/Meta/H标签/正文/CTA)" },
+          { expert: "SEO_EXPERT", intensity: "STANDARD", focus: "实时优化关键词密度、Schema标记、Featured Snippet机会", output_requirement: "输出On-Page SEO建议 + Schema代码 + 语义关键词覆盖检查" }],
+        success_criteria: ["Title 50-60字符含主关键词", "H1唯一/H2-H3清晰", "Meta 120-155字符含CTA", "E-E-A-T>=5项达标", "内链>=2/外链>=2"], estimated_tokens: { input: 3000, output: 7000 }, max_retries: 3 }
+    - { node_id: "review", name: "质量与SEO联合审核", node_type: "REVIEW", domain: "质量保障", depends_on: ["content_creation"],
+        expert_panel: [{ expert: "CONTENT_REVIEWER", intensity: "STANDARD", focus: "事实核查、可读性(Flesch)、品牌语气一致性", output_requirement: ">=3条内容质量建议" },
+          { expert: "SEO_EXPERT", intensity: "STANDARD", focus: "On-Page SEO终审——关键词密度/Schema/移动端友好", output_requirement: ">=3条SEO优化建议" },
+          { expert: "FE", intensity: "LIGHT", focus: "移动端可读性、图片ALT、链接有效性", output_requirement: ">=1条前端优化建议" },
+          { expert: "QA", intensity: "LIGHT", focus: "发布清单逐项核查", output_requirement: "发布检查清单(逐项通过/不通过)" }],
+        success_criteria: ["P0已修正/P1已记录", "每位专家>=最低数量建议", "发布清单关键项全部通过"], estimated_tokens: { input: 3000, output: 5500 }, max_retries: 3 }
+    - { node_id: "gate_acceptance", name: "GATE-ACCEPTANCE交付验收", node_type: "GATE", domain: "项目管理", depends_on: ["review"],
+        expert_panel: [], success_criteria: ["用户确认文章满足发布标准"], estimated_tokens: { input: 500, output: 500 }, max_retries: 3 }
+  edges:
+    - { edge_id: "e_topic_to_gate", from: "topic_research", to: "meta_gate", condition: "on_success", data_flow: "关键词矩阵+意图分类+竞品差距", label: "选题→确认" }
+    - { edge_id: "e_gate_to_content", from: "meta_gate", to: "content_creation", condition: "on_success", data_flow: "确认的选题方向", label: "确认→创作" }
+    - { edge_id: "e_content_to_review", from: "content_creation", to: "review", condition: "on_success", data_flow: "完整文章+SEO元数据", label: "创作→审核" }
+    - { edge_id: "e_review_retry", from: "review", to: "content_creation", condition: "on_failure", data_flow: "审核不通过原因", label: "审核→修正" }
+    - { edge_id: "e_review_to_gate", from: "review", to: "gate_acceptance", condition: "on_success", data_flow: "审核通过的文章", label: "审核→验收" }
+  gates:
+    - { gate_id: "META_GATE", after_node: "topic_research", type: "USER_CONFIRM", description: "确认选题方向和关键词策略" }
+    - { gate_id: "GATE_ACCEPTANCE", after_node: "review", type: "USER_CONFIRM", description: "确认文章满足发布标准" }

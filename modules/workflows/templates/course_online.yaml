@@ -1,0 +1,175 @@
+# =============================================================================
+# OmniPM v2.1.0 — 课程型DAG模板：在线课程开发 | 风险等级：低 | 复杂度：中 | 节点数：8 | 门控数：2
+# =============================================================================
+template:
+  id: "course_online"
+  name: "在线课程开发"
+  schema_version: "2.1.0"
+  project_type: "课程型"
+  risk_level: ["low"]
+  complexity: ["medium"]
+  estimated_nodes: [7, 9]
+  description: >
+    适用于在线课程/培训项目的教学设计、内容开发和交付全流程。
+    默认产出：课程大纲 + 教学单元内容 + 评估方案 + 学习者手册。
+
+  design_dimensions:
+    - dimension: "数据架构"
+      depth: "DEEP"
+      reason: "课程内容架构设计——知识图谱、模块依赖、学习路径拓扑"
+    - dimension: "安全设计"
+      depth: "SKIP"
+      reason: "课程型项目不涉及安全架构开发——如涉及付费课程则升级为LIGHT"
+    - dimension: "合规与隐私"
+      depth: "LIGHT"
+      reason: "内容版权合规——素材授权、引用标注、原创性审查"
+
+  nodes:
+    - node_id: "req_analysis"
+      name: "需求分析"
+      node_type: "ANALYSIS"
+      domain: "需求管理"
+      depends_on: []
+      expert_panel:
+        - expert: "REQ"
+          intensity: "STANDARD"
+          focus: "梳理目标学习者画像、学习目标、课时预算、交付平台约束"
+          output_requirement: "输出学习者画像 + 学习目标清单（Bloom层级） + 课程约束表"
+        - expert: "COURSE_DESIGNER"
+          intensity: "LIGHT"
+          focus: "评估学习目标的可达成性和认知递进合理性"
+          output_requirement: "输出教学目标初步评审意见（>=2条建议）"
+      success_criteria:
+        - "目标学习者画像已定义（>=3个维度）"
+        - "学习目标>=5条，按Bloom分类法标注"
+        - "课程约束（总时长/平台/交互形式）已明确"
+      estimated_tokens: { input: 1500, output: 3500 }
+      max_retries: 3
+
+    - node_id: "meta_gate"
+      name: "META-GATE需求确认"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["req_analysis"]
+      expert_panel: []
+      success_criteria: ["用户确认需求分析结论"]
+      estimated_tokens: { input: 500, output: 500 }
+      max_retries: 3
+
+    - node_id: "course_design"
+      name: "课程大纲与教学设计"
+      node_type: "DESIGN"
+      domain: "教学设计"
+      depends_on: ["meta_gate"]
+      expert_panel:
+        - expert: "COURSE_DESIGNER"
+          intensity: "DEEP"
+          focus: "模块划分、学习路径编排（螺旋递进）、Bloom层级映射、认知负荷分布"
+          output_requirement: "输出课程大纲 + 学习路径图 + Bloom覆盖矩阵 + 认知负荷热力图"
+      success_criteria:
+        - "课程>=4个模块，模块间有明确前置依赖"
+        - "Bloom层级覆盖>=5/6"
+        - "每个模块有明确可测量学习产出（MLO）"
+      estimated_tokens: { input: 2000, output: 5000 }
+      max_retries: 3
+
+    - node_id: "content_development"
+      name: "教学单元内容开发"
+      node_type: "DEVELOP"
+      domain: "内容生产"
+      depends_on: ["course_design"]
+      expert_panel:
+        - expert: "COURSE_DESIGNER"
+          intensity: "STANDARD"
+          focus: "编写教学单元内容——知识讲解、案例分析、互动练习"
+          output_requirement: "输出>=4个教学单元的完整内容"
+        - expert: "CONTENT_REVIEWER"
+          intensity: "LIGHT"
+          focus: "旁路审核内容准确性和可读性"
+          output_requirement: "输出内容质量审核意见（>=3条）"
+      success_criteria:
+        - "每个单元含：导入→核心内容→案例→练习→小结"
+        - "专业术语有解释或术语表链接"
+      estimated_tokens: { input: 3500, output: 9000 }
+      max_retries: 3
+
+    - node_id: "assessment_design"
+      name: "评估策略与题库设计"
+      node_type: "DESIGN"
+      domain: "评估策略"
+      depends_on: ["course_design"]
+      expert_panel:
+        - expert: "COURSE_DESIGNER"
+          intensity: "STANDARD"
+          focus: "设计形成性评估和总结性评估；Constructive Alignment对齐"
+          output_requirement: "输出评估矩阵 + 题库（>=20题）+ 互评量规"
+        - expert: "QA"
+          intensity: "LIGHT"
+          focus: "审查评估工具效度和信度"
+          output_requirement: "输出评估质量审查意见（>=2条）"
+      success_criteria:
+        - "评估矩阵覆盖>=80%学习目标"
+        - "题库覆盖记忆/理解/应用/分析至少4层"
+      estimated_tokens: { input: 2000, output: 5000 }
+      max_retries: 3
+
+    - node_id: "review"
+      name: "课程质量联合审核"
+      node_type: "REVIEW"
+      domain: "质量保障"
+      depends_on: ["content_development", "assessment_design"]
+      expert_panel:
+        - expert: "COURSE_DESIGNER"
+          intensity: "STANDARD"
+          focus: "审核内容-目标对齐度、认知递进合理性"
+          output_requirement: "输出>=3条教学设计建议"
+        - expert: "CONTENT_REVIEWER"
+          intensity: "STANDARD"
+          focus: "审核内容准确性、可读性、版权合规"
+          output_requirement: "输出>=3条内容质量建议"
+        - expert: "QA"
+          intensity: "LIGHT"
+          focus: "审核评估工具效度和课程完整性"
+          output_requirement: "输出>=2条质量保障建议"
+      success_criteria: ["所有P0问题已修正", "每位专家>=最低数量建议", "课程完整性检查通过"]
+      estimated_tokens: { input: 3000, output: 6000 }
+      max_retries: 3
+
+    - node_id: "deliver"
+      name: "交付与文档"
+      node_type: "DELIVER"
+      domain: "项目管理"
+      depends_on: ["review"]
+      expert_panel: []
+      success_criteria:
+        - "产出课程大纲文档（含学习路径图）"
+        - "产出教学单元内容（>=4个单元）"
+        - "产出评估方案（题库+量规+项目设计）"
+        - "产出学习者手册和讲师手册"
+      estimated_tokens: { input: 1500, output: 4000 }
+      max_retries: 3
+
+    - node_id: "gate_acceptance"
+      name: "GATE-ACCEPTANCE交付验收"
+      node_type: "GATE"
+      domain: "项目管理"
+      depends_on: ["deliver"]
+      expert_panel: []
+      success_criteria: ["用户确认所有交付物满足教学目标"]
+      estimated_tokens: { input: 500, output: 500 }
+      max_retries: 3
+
+  edges:
+    - { edge_id: "e_req_to_gate", from: "req_analysis", to: "meta_gate", condition: "on_success", data_flow: "需求分析结论", label: "需求→确认" }
+    - { edge_id: "e_gate_to_design", from: "meta_gate", to: "course_design", condition: "on_success", data_flow: "确认的需求基线", label: "确认→设计" }
+    - { edge_id: "e_design_to_content", from: "course_design", to: "content_development", condition: "on_success", data_flow: "课程大纲+学习路径", label: "设计→内容" }
+    - { edge_id: "e_design_to_assessment", from: "course_design", to: "assessment_design", condition: "on_success", data_flow: "课程大纲+学习目标", label: "设计→评估" }
+    - { edge_id: "e_content_to_review", from: "content_development", to: "review", condition: "on_success", data_flow: "教学单元内容", label: "内容→审核" }
+    - { edge_id: "e_assessment_to_review", from: "assessment_design", to: "review", condition: "on_success", data_flow: "评估方案+题库", label: "评估→审核" }
+    - { edge_id: "e_review_retry", from: "review", to: "review", condition: "on_failure", data_flow: "审核不通过原因", label: "审核↺" }
+    - { edge_id: "e_review_to_deliver", from: "review", to: "deliver", condition: "on_success", data_flow: "审核通过的内容+评估", label: "审核→交付" }
+    - { edge_id: "e_deliver_to_gate", from: "deliver", to: "gate_acceptance", condition: "on_success", data_flow: "完整交付物", label: "交付→验收" }
+
+  gates:
+    - { gate_id: "META_GATE", after_node: "req_analysis", type: "USER_CONFIRM", description: "确认需求分析结论" }
+    - { gate_id: "GATE_ACCEPTANCE", after_node: "deliver", type: "USER_CONFIRM", description: "确认最终交付物满足教学目标" }

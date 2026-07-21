@@ -1,0 +1,9 @@
+.git/
+project/_extracted*.txt
+*.bak
+node_modules/
+.pi/
+nul
+project/backend/
+project/miniprogram/
+project/web-admin/

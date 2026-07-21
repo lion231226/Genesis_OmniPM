@@ -1,0 +1,49 @@
+# OmniPM v2.1.0 — 音视频型DAG模板：短视频制作 | 风险等级：低-中 | 复杂度：中 | 节点数：7 | 门控数：2
+template:
+  id: "av_short_video"
+  name: "短视频制作"
+  schema_version: "2.1.0"
+  project_type: "音视频型"
+  risk_level: ["low", "medium"]
+  complexity: ["medium"]
+  estimated_nodes: [6, 8]
+  description: "适用于短视频内容的策划、拍摄、后期制作和多平台分发。典型场景：品牌宣传短片、产品演示视频、社交媒体短视频。默认产出：分镜脚本 + 拍摄素材 + 成片文件 + 多平台分发方案。"
+  design_dimensions:
+    - { dimension: "数据架构", depth: "LIGHT", reason: "素材资产管理——文件命名规范、版本管理、归档策略" }
+    - { dimension: "安全设计", depth: "SKIP", reason: "视频内容分发不涉及安全架构设计" }
+    - { dimension: "合规与隐私", depth: "LIGHT", reason: "版权与肖像权——背景音乐授权、出镜人授权、平台政策合规" }
+  nodes:
+    - { node_id: "creative_brief", name: "创意策划与平台策略", node_type: "ANALYSIS", domain: "创意策划", depends_on: [],
+        expert_panel: [{ expert: "MEDIA_PRODUCER", intensity: "STANDARD", focus: "核心创意概念、目标受众、视频风格、平台适配策略", output_requirement: "输出Creative Brief + 平台策略表 + 参考案例情绪板" },
+          { expert: "SEO_EXPERT", intensity: "LIGHT", focus: "视频SEO策略——标题关键词、描述优化、标签策略", output_requirement: "输出视频SEO策略(标题方案>=3 + 标签>=10)" }],
+        success_criteria: ["创意概念可通过电梯测试", "目标平台>=2个", "参考案例>=3个", "SEO标题通过关键词验证"], estimated_tokens: { input: 1800, output: 4000 }, max_retries: 3 }
+    - { node_id: "meta_gate", name: "META-GATE创意确认", node_type: "GATE", domain: "项目管理", depends_on: ["creative_brief"],
+        expert_panel: [], success_criteria: ["用户确认创意方向、平台策略和风格定位"], estimated_tokens: { input: 500, output: 500 }, max_retries: 3 }
+    - { node_id: "script_design", name: "脚本与分镜设计", node_type: "DESIGN", domain: "前期制作", depends_on: ["meta_gate"],
+        expert_panel: [{ expert: "MEDIA_PRODUCER", intensity: "DEEP", focus: "撰写完整脚本、分镜脚本(镜号/景别/运动/转场/时长)、视觉风格指南", output_requirement: "输出完整脚本(含时间码) + 分镜脚本(>=8镜头) + 视觉风格指南 + 制作排期表" }],
+        success_criteria: ["脚本形成完整故事弧线", "分镜覆盖所有段落", "视觉风格含色调/字体/动态图形", "排期表含前制→拍摄→后期节点"], estimated_tokens: { input: 2500, output: 6000 }, max_retries: 3 }
+    - { node_id: "production", name: "拍摄/素材采集", node_type: "DEVELOP", domain: "中期制作", depends_on: ["script_design"],
+        expert_panel: [{ expert: "MEDIA_PRODUCER", intensity: "STANDARD", focus: "设备配置、灯光方案、收音方案、场记管理", output_requirement: "输出拍摄执行手册(设备清单+灯光图+收音方案+场记模板)" }],
+        success_criteria: ["设备清单匹配分镜需求", "场记模板含镜号/条数/质量评级", "素材验收标准已定义"], estimated_tokens: { input: 2000, output: 4500 }, max_retries: 3 }
+    - { node_id: "post_production", name: "后期制作与多平台封装", node_type: "DEVELOP", domain: "后期制作", depends_on: ["production"],
+        expert_panel: [{ expert: "MEDIA_PRODUCER", intensity: "DEEP", focus: "剪辑(粗剪→精剪)、调色、音效设计、字幕、多平台版本导出", output_requirement: "输出成片(含多平台版本) + 字幕(SRT/ASS) + 封面图 + 后期报告" },
+          { expert: "SEO_EXPERT", intensity: "LIGHT", focus: "视频元数据优化——标题终稿、描述、Hashtag、发布参数", output_requirement: "输出各平台发布参数清单" }],
+        success_criteria: ["成片节奏流畅/时长±5%", "字幕准确率>=99%", "每平台版本格式合规", "封面图在缩略图尺寸可辨识"], estimated_tokens: { input: 3000, output: 7500 }, max_retries: 3 }
+    - { node_id: "review", name: "成片质量审核", node_type: "REVIEW", domain: "质量保障", depends_on: ["post_production"],
+        expert_panel: [{ expert: "MEDIA_PRODUCER", intensity: "STANDARD", focus: "审核叙事质量、视觉一致性、音频质量", output_requirement: ">=3条制作质量建议" },
+          { expert: "SEO_EXPERT", intensity: "LIGHT", focus: "审核SEO元数据完备性", output_requirement: ">=2条SEO发布建议" },
+          { expert: "QA", intensity: "LIGHT", focus: "技术质量审查——字幕同步/画质/音频电平/格式", output_requirement: "输出技术质量检查清单" }],
+        success_criteria: ["P0修正/P1记录", "每位专家>=最低数量建议", "技术清单关键项全部通过", "多平台版本已预览验证"], estimated_tokens: { input: 2500, output: 5000 }, max_retries: 3 }
+    - { node_id: "gate_acceptance", name: "GATE-ACCEPTANCE交付验收", node_type: "GATE", domain: "项目管理", depends_on: ["review"],
+        expert_panel: [], success_criteria: ["用户确认成片和多平台发布方案满足需求"], estimated_tokens: { input: 500, output: 500 }, max_retries: 3 }
+  edges:
+    - { edge_id: "e_brief_to_gate", from: "creative_brief", to: "meta_gate", condition: "on_success", data_flow: "创意简报+平台策略", label: "创意→确认" }
+    - { edge_id: "e_gate_to_script", from: "meta_gate", to: "script_design", condition: "on_success", data_flow: "确认的创意方向", label: "确认→脚本" }
+    - { edge_id: "e_script_to_production", from: "script_design", to: "production", condition: "on_success", data_flow: "脚本+分镜+风格指南+排期", label: "脚本→拍摄" }
+    - { edge_id: "e_production_to_post", from: "production", to: "post_production", condition: "on_success", data_flow: "拍摄素材+场记", label: "拍摄→后期" }
+    - { edge_id: "e_post_to_review", from: "post_production", to: "review", condition: "on_success", data_flow: "成片+字幕+封面+发布参数", label: "后期→审核" }
+    - { edge_id: "e_review_retry", from: "review", to: "post_production", condition: "on_failure", data_flow: "审核不通过原因", label: "审核→后期修正" }
+    - { edge_id: "e_review_to_gate", from: "review", to: "gate_acceptance", condition: "on_success", data_flow: "审核通过的成片", label: "审核→验收" }
+  gates:
+    - { gate_id: "META_GATE", after_node: "creative_brief", type: "USER_CONFIRM", description: "确认创意方向、平台策略和风格定位" }
+    - { gate_id: "GATE_ACCEPTANCE", after_node: "review", type: "USER_CONFIRM", description: "确认最终成片和多平台发布方案" }
