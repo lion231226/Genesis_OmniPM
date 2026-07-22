@@ -1,9 +1,9 @@
 # OmniPM 新对话引导词 v2.3.0
 
 > **用途**：将此文件内容粘贴为新对话的第一条消息。
-> **当前版本**：v2.3.0
-> **当前进度**：任务1/7 ✅ | 下一任务 → 修复偏差+优化提升
-> **下一任务**：修复任务1偏差（P1/P2项） + 安全加固
+> **当前版本**：v2.3.1
+> **当前进度**：任务3/7 ✅ | 下一任务 → Web管理后台会员管理CRUD
+> **下一任务**：任务4 — Web管理后台会员管理CRUD（验证GATE硬阻断 + 专家评审质量）
 
 ---
 
@@ -16,7 +16,7 @@
 - **Extension**：`run_experts`（单/并行/链式）+ `omni_dag`（DAG 状态管理）
 - **13 位专家 Agent v2.3.0**：每位含审查清单 + 质量标准(P0/P1/P2) + 协作提示
 - **跨平台运行时**：ARI 抽象层 + Pi Adapter + Mock Runtime + 平台配置表
-- **71 个单元测试**：mock(23) + dag-utils(31) + chain-executor(17)
+- **74 个单元测试**：mock(23) + dag-utils(31) + chain-executor(17) + source-integrity(3) 🆕
 - **GitHub**：`lion231226/Genesis_OmniPM` + `lion231226/omnipm-orion` + `lion231226/yoga-studio`
 
 ## 二、版本能力总览
@@ -71,14 +71,16 @@ yoga-studio/
 │     ├── GATE 是否按要求暂停？                          │
 │     ├── 闭环修正是否正确触发？                          │
 │     └── 专家评审输出是否符合 v2.3.0 质量标准？           │
-│  4. 记录偏差 → 分类 → 修复                             │
-│  5. 更新 PROJECT_MEMORY.md 验证记录                     │
+│  4. 记录偏差 → ★ 双轨路由（§4.4）→ 分类 → 修复        │
+│  5. 更新对应项目的 PROJECT_MEMORY.md                    │
 └─────────────────────────────────────────────────────┘
 ```
 
 ### 4.3 验证记录模板
 
-每个原子任务完成后，在 `PROJECT_MEMORY.md` 追加：
+每个原子任务完成后，Orion **必须判断偏差归属**（§4.4），然后写入对应文件：
+
+**OmniPM 引擎偏差 → `PROJECT_MEMORY.md`（引擎项目根目录）：**
 
 ```yaml
 validation_log:
@@ -86,21 +88,62 @@ validation_log:
     date: "日期"
     dag_nodes: N
     checks:
-      meta_orion_analysis: "✅/⚠️/❌"     # 分析质量
-      dag_structure: "✅/⚠️/❌"            # DAG 结构合理性
-      expert_quality: "✅/⚠️/❌"           # 专家输出质量
-      outputs_verification: "✅/⚠️/❌"     # outputs 验证
-      gate_mechanism: "✅/⚠️/❌"            # GATE 门控
-      correction_loop: "✅/⚠️/❌"          # 闭环修正
-      dev_selfcheck: "✅/⚠️/❌"            # DEVELOP 自检
+      meta_orion_analysis: "✅/⚠️/❌"
+      dag_structure: "✅/⚠️/❌"
+      expert_quality: "✅/⚠️/❌"
+      outputs_verification: "✅/⚠️/❌"
+      gate_mechanism: "✅/⚠️/❌"
+      correction_loop: "✅/⚠️/❌"
+      dev_selfcheck: "✅/⚠️/❌"
     deviations:
-      - {check: "xxx", expected: "设计预期", actual: "实际表现", severity: "P0|P1|P2"}
+      - {check: "xxx", expected: "设计预期", actual: "实际表现", severity: "P0|P1|P2", target: "omnipm"}
     fixes_applied:
       - "修复描述"
+    engine_deviations_open:  # 仅 OmniPM 引擎偏差留此
+      - {id: "D-N", severity: "...", desc: "...", status: "待修复|已关闭"}
     verdict: "PASS|PASS_WITH_FIXES|FAIL"
 ```
 
-### 4.4 偏差严重等级
+**测试项目业务发现 → `project/PROJECT_MEMORY.md`（测试项目目录）：**
+
+```yaml
+validation_log:
+  - task: "任务描述"
+    date: "日期"
+    executed_by: "OmniPM v2.3.x Orion"
+    findings:
+      - {level: "P0|P1|P2", desc: "...", source: "专家评审|Orion审查|手动分析"}
+    fixes_applied:
+      - "修复描述"
+```
+
+### 4.4 双轨偏差路由规则（★ v2.3.1 新增）
+
+**每条偏差必须标注 `target` 字段，Orion 据此自动写入正确文件。**
+
+| target | 判定标准 | 写入文件 | 示例 |
+|--------|----------|----------|------|
+| **omnipm** | OmniPM 工具/流程/Extension 未按**自身设计文档**运行 | 引擎 `PROJECT_MEMORY.md` | `run_experts` 空输出、DAG 结构验证失败、GATE 未暂停 |
+| **test-project** | OmniPM **正常运行**产出的对测试项目代码/设计的发现 | `project/PROJECT_MEMORY.md` | 密钥硬编码、SQL注入风险、缺少错误处理 |
+
+**路由决策树（Orion 每发现偏差时必须执行）：**
+
+```
+发现偏差
+  ├─ 根因是 OmniPM 工具/流程未按设计运行？
+  │   → target: omnipm
+  │   → 写入引擎 PROJECT_MEMORY.md engine_deviations_open
+  │
+  ├─ 根因是测试项目代码/设计质量问题？
+  │   → target: test-project
+  │   → 写入 project/PROJECT_MEMORY.md findings
+  │
+  └─ 无法判断？
+      → target: omnipm（默认，宁可多记不可漏记）
+      → 标注 `uncertain: true` 待人工确认
+```
+
+### 4.5 偏差严重等级
 
 | 等级 | 含义 | 处理 |
 |------|------|------|
@@ -127,8 +170,9 @@ Orion = 编排者 + 验收者，不是亲手执行者。
 - REVIEW 节点出口必须检查 dag_suggestion（§2.3.1）
 - DAG 生成前检查需求覆盖率（§1.6-B）
 - **声称"完成"前必须验证文件确实存在**（防止虚假汇报）
-- **每任务结束时必须填写验证记录**
+- **每任务结束时必须填写验证记录，按双轨路由写入正确文件**
 - **一次对话只做一个原子任务**
+- **★ 偏差双轨路由（v2.3.1）：引擎偏差 → PROJECT_MEMORY.md，业务发现 → project/PROJECT_MEMORY.md**
 
 ## 六、新对话启动指令
 
@@ -150,8 +194,8 @@ Orion = 编排者 + 验收者，不是亲手执行者。
 1. Meta-Orion 分析任务 → 输出 META-GATE
 2. 用户确认 → 生成 DAG → GATE-DESIGN
 3. 按 DAG 逐节点执行，每节点完成后立即对照 §四 验证清单
-4. 记录偏差 → 分类 → 修复
-5. 更新 PROJECT_MEMORY.md 验证记录
+4. ★ 记录偏差 → 判定归属（引擎 vs 测试项目）→ 双轨写入对应文件
+5. 更新 PROJECT_MEMORY.md 验证记录（引擎）+ project/PROJECT_MEMORY.md（测试项目）
 6. GATE-ACCEPTANCE
 7. ★ 闭包流程（§八）：GATE-ACCEPTANCE 确认后自动执行
 
@@ -159,7 +203,8 @@ Orion = 编排者 + 验收者，不是亲手执行者。
 - 一次对话只做这一个任务，不要扩展到其他范围
 - 每个节点完成必须带 outputs 验证
 - 专家空输出 → 重试（v2.2.1）
-- 发现问题立即记录，P0 立即修复
+- 发现问题立即记录，按双轨路由写入正确文件
+- P0 立即修复（优先修复 OmniPM 引擎偏差）
 ```
 
 ## 七、推荐原子任务队列
@@ -169,17 +214,19 @@ Orion = 编排者 + 验收者，不是亲手执行者。
 | # | 任务 | 验证重点 |
 |---|------|---------|
 | 1 | ~~后端登录/注册模块完善~~ ✅ | outputs验证 + GATE门控 + 专家协作 → PASS_WITH_FIXES |
-| **2** | **修复任务1偏差 + 优化提升** 🔥 | **闭环修正 + P1/P2清零 + 安全加固** |
-| 3 | 小程序首页课表展示 | 前后端协作 + DEVELOP自检 |
-| 4 | Web 管理后台会员管理 CRUD | GATE硬阻断 + 专家评审质量 |
+| 2 | ~~修复OmniPM引擎偏差D-1~~ ✅ | ~~Extension源码腐败 → \n转义修复 → 三级预防固化 → 74测试通过~~ |
+| 3 | ~~小程序首页课表展示~~ ✅ | ~~前后端协作 + DEVELOP自检~~ → PASS_WITH_FIXES |
+| **4** | **Web 管理后台会员管理 CRUD** 🔥 | **GATE硬阻断 + 专家评审质量** |
+
 | 5 | 后端单元测试补充 | 代码生成质量 + 测试策略 |
 | 6 | 消息推送模板+定时任务 | 工作流复杂度 + 闭环修正 |
 | 7 | 积分兑换商城逻辑 | 并发安全 + 安全专家评审 |
 
-> **任务2 偏差清单**（来源：`PROJECT_MEMORY.md` manual_security_review）：
-> - P1: 默认密钥硬编码、刷新令牌并发安全、SMS服务集成
-> - P2: 登录失败锁定、CSRF token、黑名单TTL、IDOR query param覆盖
-> - 工具层: run_experts(security) 空输出 → 检查Extension配置
+> **任务2 结论 [PASS]**：OmniPM 引擎偏差 D-1 已关闭。
+> **任务3 结论 [PASS_WITH_FIXES]**：新增3文件+修改2文件，2个课表API端点。前后端14项字段对齐✅。引擎偏差D-2：run_experts(backend)输出截断（P2，待修复）。
+> 根因：`index.ts` 中 `\n` 转义腐败 → Extension 加载失败 → 子进程空输出。
+> 修复：源码修复 + 三级预防（CI门禁/启动自检/完整性测试）。
+> 瑜伽馆业务发现已移交 `project/PROJECT_MEMORY.md`。
 
 ---
 
