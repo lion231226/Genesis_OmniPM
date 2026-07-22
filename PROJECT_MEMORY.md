@@ -22,8 +22,8 @@ last_checkpoint:
     - "project/backend/internal/handler/router.go (+11行)"
     - "project/backend/cmd/server/main.go (+1行)"
 resume_point: |
-  下一会话：继续原子任务队列，按 NEXT_SESSION_GUIDE.md §七 执行任务#4。
-  任务#4推荐：Web管理后台会员管理CRUD（验证GATE硬阻断+专家评审质量）。
+  下一会话：优先修复引擎偏差 D-2（run_experts 输出截断），再继续原子任务队列。
+  D-2修复后 → 按 NEXT_SESSION_GUIDE.md §七 执行任务#4：Web管理后台会员管理CRUD。
 user_tech_level: "advanced"
 estimated_completion: "ongoing"
 tags:

@@ -2,8 +2,8 @@
 
 > **用途**：将此文件内容粘贴为新对话的第一条消息。
 > **当前版本**：v2.3.1
-> **当前进度**：任务3/7 ✅ | 下一任务 → Web管理后台会员管理CRUD
-> **下一任务**：任务4 — Web管理后台会员管理CRUD（验证GATE硬阻断 + 专家评审质量）
+> **当前进度**：任务3/7 ✅ | 下一任务 → 修复引擎偏差D-2
+> **下一任务**：引擎修复 — run_experts 输出截断问题 D-2（调查根因 → 修复 → 预防）
 
 ---
 
@@ -176,6 +176,8 @@ Orion = 编排者 + 验收者，不是亲手执行者。
 
 ## 六、新对话启动指令
 
+### 6.1 原子任务（测试验证）
+
 ```
 @OMNIPM_SYSTEM_PROMPT.md
 
@@ -207,6 +209,38 @@ Orion = 编排者 + 验收者，不是亲手执行者。
 - P0 立即修复（优先修复 OmniPM 引擎偏差）
 ```
 
+### 6.2 引擎偏差修复（★ v2.3.1 新增）
+
+```
+@OMNIPM_SYSTEM_PROMPT.md
+
+你是 Orion v2.3.0。新会话启动。引擎偏差修复模式。
+
+请读取：
+1. PROJECT_MEMORY.md       — 定位 engine_deviations_open 中的待修复项
+2. NEXT_SESSION_GUIDE.md   — 本文件（§七 队列中的 🔧 引擎修复任务）
+3. OMNIPM_SYSTEM_PROMPT.md — 系统提示词
+
+═══════════════════════════════════════
+本次引擎修复：[偏差ID + 标题]
+═══════════════════════════════════════
+
+执行流程：
+1. 读取 PROJECT_MEMORY.md 偏差记录的 root_cause → 理解问题
+2. 调查 omnipm-orion 源码定位根本原因（检查 Extension 日志/测试/源码）
+3. 设计修复方案 → 用户确认
+4. 实施修复 + 验证（运行现有74个单元测试确保无回归）
+5. 更新 PROJECT_MEMORY.md：偏差 status → 已关闭，记录 fix + prevention
+6. 如有新预防措施，更新 source-integrity 测试
+7. 闭包流程（§八）
+
+关键提醒：
+- 优先检查 omnipm-orion/extensions/omnipm/ 源码
+- 每次修改后运行 npm test 验证无回归
+- 修复后必须更新 engine_fixes 记录（date_closed + root_cause + fix + prevention）
+- CI门禁测试 source-integrity.test.ts 扫描 .ts/.md 中的字面换行符
+```
+
 ## 七、推荐原子任务队列
 
 按优先级排列，每次选一个在新对话中执行：
@@ -216,7 +250,8 @@ Orion = 编排者 + 验收者，不是亲手执行者。
 | 1 | ~~后端登录/注册模块完善~~ ✅ | outputs验证 + GATE门控 + 专家协作 → PASS_WITH_FIXES |
 | 2 | ~~修复OmniPM引擎偏差D-1~~ ✅ | ~~Extension源码腐败 → \n转义修复 → 三级预防固化 → 74测试通过~~ |
 | 3 | ~~小程序首页课表展示~~ ✅ | ~~前后端协作 + DEVELOP自检~~ → PASS_WITH_FIXES |
-| **4** | **Web 管理后台会员管理 CRUD** 🔥 | **GATE硬阻断 + 专家评审质量** |
+| **🔧** | **修复 OmniPM 引擎偏差 D-2** 🔥 | **run_experts(backend) 输出截断根因调查+修复+预防** |
+| 4 | Web 管理后台会员管理 CRUD | GATE硬阻断 + 专家评审质量 |
 
 | 5 | 后端单元测试补充 | 代码生成质量 + 测试策略 |
 | 6 | 消息推送模板+定时任务 | 工作流复杂度 + 闭环修正 |
@@ -224,9 +259,12 @@ Orion = 编排者 + 验收者，不是亲手执行者。
 
 > **任务2 结论 [PASS]**：OmniPM 引擎偏差 D-1 已关闭。
 > **任务3 结论 [PASS_WITH_FIXES]**：新增3文件+修改2文件，2个课表API端点。前后端14项字段对齐✅。引擎偏差D-2：run_experts(backend)输出截断（P2，待修复）。
-> 根因：`index.ts` 中 `\n` 转义腐败 → Extension 加载失败 → 子进程空输出。
-> 修复：源码修复 + 三级预防（CI门禁/启动自检/完整性测试）。
-> 瑜伽馆业务发现已移交 `project/PROJECT_MEMORY.md`。
+
+> **当前待修复引擎偏差**：
+> - D-1 ✅ 已关闭：`\n` 转义腐败 → Extension 加载失败 → 子进程空输出
+> - D-2 🔥 待修复：run_experts(backend) 输出截断（↓1.6K tokens），评审在读取代码阶段中止
+
+> **下一会话任务：修复 D-2。** 调查方向：检查子代理日志确认终止原因（token_limit? timeout? context_error?），对比 D-1 修复后的 Extension 日志，定位截断发生层级。
 
 ---
 
