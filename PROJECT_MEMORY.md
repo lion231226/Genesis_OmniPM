@@ -1,77 +1,63 @@
 ---
 project_name: "OmniPM — 自编排项目总负责人"
 phase: "V2"
-stage: "P1_DESIGN_COMPLETE"
-status: "completed"
+stage: "V2.3.0_VALIDATION"
+status: "active"
 created: "2026-07-21T00:00:00Z"
-updated: "2026-07-21T14:30:00Z"
-version: "2.1.0"
-current_step: null
+updated: "2026-07-22T04:00:00Z"
+version: "2.3.0"
+current_step: "等待新会话：使用瑜伽馆项目进行测试验证"
 last_checkpoint:
-  state: "GATE_ACCEPTANCE"
-  node: "p1_integrate"
-  sub_step: "P0+P1 双轮闭环完成。P0 文件已落地，P1 设计全部完成，待用户启动 Phase 0 代码实施"
-  timestamp: "2026-07-21T14:30:00Z"
+  state: "ENGINE_READY"
+  timestamp: "2026-07-22T04:00:00Z"
+  summary: |
+    v2.3.0 引擎打磨完成。
+    P0修复(P0-1/2/3) + P2跨平台架构(ARI/Mock/PiAdapter) + 子代理可靠性(空输出检测/超时/诊断)
+    + 代码重构(chain-executor/dag-utils提取) + 13专家v2.3.0增强 + 71单元测试 + CI/CD就绪。
+    瑜伽馆项目三仓库已拆分推送。下一步：用瑜伽馆项目逐任务测试验证引擎。
   key_files:
-    - "OPTIMIZATION_PLAN.md (v2.1.0，含Pi原生能力分析)"
-    - "OMNIPM_SYSTEM_PROMPT.md (§13.2+§13.3 DAG跨Agent共享协议)"
-    - ".pi/omnipm_dag_state.json (v2.1.0 Schema)"
-    - "PROJECT_MEMORY.md (dag_state v2.1.0 模板)"
+    - "NEXT_SESSION_GUIDE.md (v2.3.0 测试验证协议)"
+    - "OMNIPM_SYSTEM_PROMPT.md (854行)"
+    - "omnipm-orion/extensions/omnipm/index.ts (1610行)"
+    - "omnipm-orion/extensions/omnipm/runtime/ (4文件, 1000+行)"
+    - "omnipm-orion/extensions/omnipm/__tests__/ (3文件, 71 tests)"
 resume_point: |
-  下一会话启动选项：
-  A) 继续代码实施 — 按 Phase 0 路线图执行 P1-7(品牌叙事) + P1-2(命名统一)
-  B) 启动新项目 — 使用 OmniPM v2.1.0 完整能力
-  C) P2 远期规划 — Agent Skills Registry / 条件分支 / 跨平台兼容
+  下一会话：使用瑜伽馆项目进行测试验证。
+  按 NEXT_SESSION_GUIDE.md §四 测试验证协议执行：
+  1. 选一个原子任务（推荐从 §七 队列中按序选取）
+  2. Meta-Orion分析 → DAG执行 → 逐节点对照验证
+  3. 记录偏差 → 分类(P0/P1/P2) → 修复
+  4. 更新本文 validation_log
 user_tech_level: "advanced"
-estimated_completion: "2026-07-28T00:00:00Z"
+estimated_completion: "ongoing"
 tags:
-  - "self-orchestrating"
-  - "dynamic-workflow"
-  - "multi-agent"
-  - "closed-loop"
-  - "meta-orion"
-  - "dag-engine"
-  - "v2.1.0"
-  - "cross-agent-context"
-  - "dag-proposal-protocol"
-  - "context-engineering"
-  - "pi-native-integration"
-description: "v2.1.0 P0+P1 双轮闭环完成。P0: DAG跨Agent共享+Orion硬规则已落地文件。P1: 7项设计全部完成（DAG模板库/专家标准化/链式调用/自动注入/输出Schema/事件总线/品牌叙事），4项跨项冲突已识别并给出裁决方案，4周实施路线图已规划。Pi官方仓库深度分析完成，识别3个未利用的原生能力。"
+  - "v2.3.0"
+  - "cross-platform-runtime"
+  - "71-tests"
+  - "13-expert-enhanced"
+  - "yoga-studio-validation"
+  - "test-protocol"
+  - "atomic-tasks"
+description: |
+  OmniPM v2.3.0 引擎完成，进入测试验证阶段。
+  使用瑜伽馆数字AI化运营系统作为真实测试项目，
+  每次对话执行一个原子任务，每节点完成后对照设计验证，
+  发现偏差立即分类修复，所有验证记录存入 validation_log。
 
 # ═══════════════════════════════════════════
-# DAG 执行状态 ★v2.1.0 扩展
+# 测试验证日志（v2.3.0 新增）
+# ═══════════════════════════════════════════
+validation_log: []
+# 格式见 NEXT_SESSION_GUIDE.md §4.3
+
+# ═══════════════════════════════════════════
+# DAG 执行状态（保留）
 # ═══════════════════════════════════════════
 dag_state:
-  version: "2.1.0"
-  dag_id: "550e8400-e29b-41d4-a716-446655440000"
+  version: "2.3.0"
+  dag_id: null
   current_node: null
-  completed_nodes:
-    - "p0_3_rules_design"
-    - "p0_1_test_single"
-    - "p0_3_rules_implement"
-    - "p0_1_test_parallel"
-    - "p0_2_dag_design"
-    - "p0_2_dag_implement"
-    - "p0_verify"
-    - "p1_2_experts_md"
-    - "p1_5_output_schema"
-    - "p1_7_brand_narrative"
-    - "p1_3_chain_mode"
-    - "p1_4_auto_inject"
-    - "p1_6_event_bus"
-    - "p1_1_dag_templates"
-    - "p1_integrate"
+  completed_nodes: []
   failed_nodes: []
   blocked_nodes: []
   correction_count: {}
-  upstream_summaries:
-    p1_integrate: |
-      P1整合验收完成。总体设计质量 2.7/5，4项跨项冲突已识别，7个P0阻塞项待代码落地。
-      推荐实施路线：Week1 P1-7+P1-2 → Week2 P1-5+P1-1 → Week3 P1-3+P1-4 → Week4 P1-6+集成测试。
-  topology_checkpoint:
-    edges_hash: "sha256:placeholder"
-    total_nodes: 15
-    key_path:
-      - "p0_verify"
-      - "p1_integrate"
----
