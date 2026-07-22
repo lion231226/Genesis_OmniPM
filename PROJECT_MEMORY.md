@@ -4,9 +4,9 @@ phase: "V2"
 stage: "V2.3.0_VALIDATION"
 status: "active"
 created: "2026-07-21T00:00:00Z"
-updated: "2026-07-22T16:50:00Z"
+updated: "2026-07-22T17:00:00Z"
 version: "2.3.1"
-current_step: "引擎修复D-2完成：run_experts输出截断"
+current_step: "引擎修复D-2完成 + agent-reach CLI安装"
 last_checkpoint:
   state: "TASK_3_COMPLETE"
   timestamp: "2026-07-22T16:00:00Z"
@@ -100,6 +100,23 @@ validation_log:
       - "dag-utils.ts: 同步更新getFinalOutput/generateDAGSuggestion/isOutputTruncated"
       - "chain-executor.ts: 同步更新FailureType/classifyFailure/hints"
       - "dag-utils.test.ts: 新增10个测试(截断检测/拼接输出/混合场景) → 84/84通过"
+    engine_deviations_open: []
+    verdict: "PASS"
+
+  - task: "安装 agent-reach CLI（解决降级搜索问题）"
+    date: "2026-07-22"
+    dag_nodes: 0
+    checks:
+      agent_reach_installed: "✅"
+      channels_active: "✅"
+      exa_search_configured: "✅"
+    deviations:
+      - {check: "agent_reach_installed", expected: "任务#3前已安装", actual: "v1.5.0缺失，CDL搜索被迫降级", severity: "P2", target: "omnipm"}
+    fixes_applied:
+      - "pip install agent-reach v1.5.0（GitHub main.zip）"
+      - "agent-reach install --env=auto → 11/15渠道可用"
+      - "mcporter config add exa → Exa全网语义搜索已配置"
+      - "验证: mcporter call exa.web_search_exa 正常返回结果"
     engine_deviations_open: []
     verdict: "PASS"
 
