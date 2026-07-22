@@ -4,9 +4,9 @@ phase: "V2"
 stage: "V2.3.0_VALIDATION"
 status: "active"
 created: "2026-07-21T00:00:00Z"
-updated: "2026-07-22T16:00:00Z"
-version: "2.3.0"
-current_step: "任务#3完成：小程序首页课表展示"
+updated: "2026-07-22T16:50:00Z"
+version: "2.3.1"
+current_step: "引擎修复D-2完成：run_experts输出截断"
 last_checkpoint:
   state: "TASK_3_COMPLETE"
   timestamp: "2026-07-22T16:00:00Z"
@@ -22,8 +22,8 @@ last_checkpoint:
     - "project/backend/internal/handler/router.go (+11行)"
     - "project/backend/cmd/server/main.go (+1行)"
 resume_point: |
-  下一会话：优先修复引擎偏差 D-2（run_experts 输出截断），再继续原子任务队列。
-  D-2修复后 → 按 NEXT_SESSION_GUIDE.md §七 执行任务#4：Web管理后台会员管理CRUD。
+  引擎偏差 D-2 已修复。
+  下一会话 → 按 NEXT_SESSION_GUIDE.md §七 执行任务#4：Web管理后台会员管理CRUD。
 user_tech_level: "advanced"
 estimated_completion: "ongoing"
 tags:
@@ -81,9 +81,27 @@ validation_log:
       - "手动逐项审查替代：SQL安全性/索引/解密安全/字段对齐/错误处理 → 14项字段对齐矩阵验证通过"
       - "新增 schedule_dto.go + schedule_service.go + schedule_handler.go"
       - "router.go 注册2个公开课表端点 + main.go 传递 aesKey"
-    engine_deviations_open:
-      - {id: "D-2", severity: "P2", desc: "run_experts(backend) 输出截断：评审内容在读取代码阶段中止，仅1.6K tokens", status: "待修复"}
+    engine_deviations_open: []
     verdict: "PASS_WITH_FIXES"
+
+  - task: "修复引擎偏差D-2：run_experts输出截断"
+    date: "2026-07-22"
+    dag_nodes: 0
+    checks:
+      root_cause_analysis: "✅"
+      fix_implementation: "✅"
+      regression_tests: "✅"
+      prevention_measures: "✅"
+    deviations: []
+    fixes_applied:
+      - "getFinalOutput: 拼接全部assistant消息(非仅最后一条) → 修复多轮分析产出丢失"
+      - "formatUsage: 新增stopReason参数 → 暴露子代理终止原因(mx_tokens/end_turn)"
+      - "generateDAGSuggestion: 新增isOutputTruncated检测 → stopReason=max_tokens自动触发retry"
+      - "dag-utils.ts: 同步更新getFinalOutput/generateDAGSuggestion/isOutputTruncated"
+      - "chain-executor.ts: 同步更新FailureType/classifyFailure/hints"
+      - "dag-utils.test.ts: 新增10个测试(截断检测/拼接输出/混合场景) → 84/84通过"
+    engine_deviations_open: []
+    verdict: "PASS"
 
 # ═══════════════════════════════════════════
 # 引擎偏差修复记录（v2.3.0）
@@ -92,16 +110,29 @@ engine_fixes:
   - id: "D-2"
     severity: "P2"
     title: "run_experts(backend) 输出截断（1.6K tokens）"
-    status: "待修复"
+    status: "已关闭"
     date_opened: "2026-07-22"
-    date_closed: ""
+    date_closed: "2026-07-22"
     root_cause: |
-      run_experts expert=backend 评审时，子代理输出在"接下来读取已有代码模式作为一致性参照"
-      步骤后中止。↓1.6K tokens远低于预期评审产出。与任务#1的D-1空输出模式相似但不同：
-      非空输出，而是内容截断——子代理似乎启动了评审流程但被提前终止（exitCode=0）。
-      疑似子代理上下文中的代码材料不足或读取阶段超时/被限流。
-    fix: "待调查：需检查子代理日志确认终止原因（token_limit? timeout? context_error?）"
-    prevention: "与D-1共享三级预防机制（CI门禁/启动自检/完整性测试）。额外考虑：增加评审超时诊断日志。"
+      三个层面问题叠加导致输出不可靠：
+      1. getFinalOutput 仅返回最后一条 assistant 消息。
+         子代理多轮分析时前几轮分析产出全部丢失。
+      2. stopReason 已捕获但未在输出中暴露。
+         Orion 无法判断子代理终止原因（max_tokens/end_turn）。
+      3. generateDAGSuggestion 未检测截断模式。
+         输出<100字符才判 low_quality，1.6K tokens 的截断输出不触发告警。
+    fix: |
+      - getFinalOutput: 拼接全部 assistant 消息（非仅最后一条）
+      - formatUsage: 新增 stopReason 参数，输出中暴露终止原因
+      - generateDAGSuggestion: 新增 isOutputTruncated 检测
+        (stopReason=max_tokens + 启发式：未闭合代码块/截断句尾)
+      - dag-utils.ts / chain-executor.ts: 同步更新
+      - 新增 10 个单元测试（截断检测/拼接输出/混合场景）→ 84/84 通过
+    prevention: |
+      1. stopReason 始终可见：每次 run_experts 输出中标注 ⏹max_tokens 等
+      2. 自动重试截断：DAG_SUGGESTION 中 stopReason=max_tokens → 触发 retry
+      3. 链式调用截断处理：truncated 作为独立 FailureType 参与链式重试
+      4. 单元测试回归：source-integrity + dag-utils 覆盖截断检测全路径
 
   - id: "D-1"
     severity: "P2"
