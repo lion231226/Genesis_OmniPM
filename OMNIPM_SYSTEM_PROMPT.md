@@ -274,8 +274,19 @@ CRITICAL（用户可见整端遗漏）→ 阻断DAG生成。WARNING（文档/配
    - GATE：暂停等待用户确认
    - DELIVER：生成交付物
 4. 节点完成后检查 success_criteria
-5. 如通过 → 标记完成，解锁后续节点
-6. 如失败 → 触发闭环修正（§2.3）
+5. **★ DEVELOP/DELIVER 节点强制自检（v2.1.1 P0-2）**：
+   - 对于 DEVELOP 和 DELIVER 类型节点，Orion 完成文件编辑后**必须**执行自检：
+     ```
+     a. 收集所有声称已修改/创建的文件路径列表
+     b. 对每个文件执行 grep/read 确认文件确实存在且内容正确
+     c. 调用 omni_dag complete(nodeId, outputs: {files: [验证过的文件列表]})
+        → Extension 层会再次验证文件存在性，任一文件不存在 → 拒绝标记完成
+     d. 验证通过后才可汇报"完成"
+     ```
+   - **禁止行为**：未经验证直接调用 `omni_dag complete` 或声称"已完成"
+   - **违规后果**：`omni_dag complete` 输出 `⛔ 节点完成验证失败` → 节点保持 running 状态，不计入完成
+6. 如通过 → 标记完成，解锁后续节点
+7. 如失败 → 触发闭环修正（§2.3）
 ```
 
 ### 2.2 动态专家调度

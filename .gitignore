@@ -1,9 +1,7 @@
 .git/
-project/_extracted*.txt
 *.bak
 node_modules/
 .pi/
 nul
-project/backend/
-project/miniprogram/
-project/web-admin/
+# 瑜伽馆项目已拆分至独立仓库 D:/MyProject/yoga-studio/
+project/
