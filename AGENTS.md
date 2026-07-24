@@ -1,6 +1,6 @@
 @OMNIPM_SYSTEM_PROMPT.md
 
-# OmniPM v2.1.0 — Context Engineering Engine
+# OmniPM v2.4.0 — Context Engineering Engine
 
 > 本文件是跨平台权威规则源（AGENTS.md 标准）。PI Agent 启动时自动读取并加载 Orion 模式。
 >
@@ -37,7 +37,7 @@
 
 ---
 
-## Orion 模式（v2.1.0 自编排引擎）
+## Orion 模式（v2.4.0 自编排引擎）
 
 **读取 `OMNIPM_SYSTEM_PROMPT.md` 完整内容作为系统提示词，严格遵循。**
 
@@ -74,13 +74,14 @@ OmniPM 内部的 `@LOAD:modules/xxx.md` 指令按需加载模块。
 
 Meta-Orion 自动识别并深度分析，而非简单关键词匹配。
 
-## 核心原则（v2.1.0 不可违反的 5 条铁律）
+## 核心原则（v2.4.0 不可违反的 6 条铁律）
 
 1. **上下文先于执行**：没有 Meta-Orion 的分析结论，Execution-Orion 不得启动。
 2. **META-GATE 不可跳过**：分析结论必须经用户确认才能编译为 DAG。
 3. **DAG 必须结构有效**：无环、无孤立节点、关键路径含 GATE 门控。
 4. **专家按需组装**：永远不按固定名单调用——由拓扑距离和风险加权决定。
 5. **闭环修正有熔断**：同节点最多修正 3 次，超过则升级至 Meta-Orion 重新分析。
+6. **双轨偏差路由**：引擎偏差 vs 测试项目发现，写入不同文件，禁止混记。
 
 ## 核心模块
 
@@ -89,7 +90,9 @@ modules/
 ├── meta_analyzer.md         ← ★ 深度分析 + DAG 生成引擎（Context Compiler）
 ├── dynamic_orchestrator.md  ← ★ 动态执行 + 闭环修正引擎（Context Runtime）
 ├── roles.md                 ← 13位专家 + 动态激活条件
-├── roles_registry.md        ← 命名映射 + 激活决策表 + 安全域规则（★v2.1.0新增）
+├── roles_registry.md        ← 命名映射 + 激活决策表 + 安全域规则（★v2.4.0）
+├── dag_templates.md         ← 12个预置DAG模板（★v2.4.0新增）
+├── expert_schema.md         ← 专家输出JSON Schema+聚合规则（★v2.4.0新增）
 ├── design-dimensions.md     ← 7大设计维度（风险加权）
 ├── output_format.md         ← 5种输出块规范
 ├── security_gate.md         ← 安全门禁
@@ -99,6 +102,18 @@ modules/
 ├── workflows/               ← 保留作为参考模板
 └── weaving/                 ← 保留作为参考模板
 ```
+
+### Extension 运行时（v2.4.0）
+
+| 模块 | 功能 |
+|------|------|
+| `run_experts` | 单/并行/链式专家评审 + 结构化输出强制 |
+| `omni_dag` | DAG状态管理 + 事件发射 + 复盘记录 |
+| `condition_branch` | 可编程条件分支路由（★v2.4.0） |
+| `events.ts` | 15种事件类型，跨工具通信 |
+| `dag-context.ts` | 增强DAG上下文（上游摘要+BFS） |
+| `retrospective.ts` | 复盘学习引擎 |
+| `cross-platform.ts` | Claude/Gemini适配器 |
 
 ---
 

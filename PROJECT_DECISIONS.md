@@ -190,3 +190,34 @@
 - **替代方案记录**：后续迭代方向包括：6 对骨架交织矩阵升级、LLM-as-Judge 自动化测试、跨会话自动恢复。
 
 ---
+
+## [决策] #012 — v2.7.0 引擎企业级加固
+
+- **时间戳**：2026-07-24T10:50:00Z
+- **决策人**：Orion
+- **议题**：OmniPM 引擎从"功能可用"到"企业级可靠"的27项加固
+- **背景**：全维度审查发现 0P0/3P1/24P2 共27项待改进点，涉及架构、安全、并发、数据、API、依赖、企业就绪7个维度
+- **结论**：全部27项在本轮完成。核心决策：
+  1. **F1 依赖倒置修复**：新增 `tools/shared.ts` 共享符号层，将 `index → {omni-dag → run-experts, run-experts → omni-dag}` 反向依赖改为 `index → {omni-dag, run-experts} → shared` 单向无环
+  2. **F6 原子写入**：采用 UUID命名 + Windows backup-then-replace 降级 + 排他锁 + 乐观锁 四层保护，替代原 `writeFileSync`
+  3. **F12 Schema迁移**："全量备份→深拷贝内存迁移→一次性写入→验证→清理"五步法，消除中间态风险
+  4. **零新依赖**：全部优化使用 Node.js 标准库 + 已集成工具
+- **影响范围**：index.ts, tools/shared.ts, runtime/diagnostics.ts, runtime/migrations.ts, cdl.ts, package.json, + CI/E2E/checksum 配置
+- **测试**：97/97 通过（94回归 + 3跨平台测试）
+
+## [决策] #013 — 瑜伽馆 Slice2 积分引擎
+
+- **时间戳**：2026-07-24T10:50:00Z
+- **决策人**：Orion
+- **议题**：积分引擎的技术架构——规则引擎、兑换商城、自动触发、定时过期
+- **背景**：Slice1 已交付约课核心闭环，Slice2 在此基础上构建会员积分体系
+- **结论**：
+  1. **规则引擎可配置**：`point_rules` 表存储规则（类型/比率/日上限/月上限），避免硬编码
+  2. **兑换=扣库存→FIFO扣积分→生成优惠券**：单一事务保证原子性，幂等键防重
+  3. **自动触发异步化**：`go func` 不阻塞主流程，失败写入 Redis 重试队列
+  4. **积分过期用 Go ticker**：不引入 cron 库，main.go 中 goroutine + context 优雅关闭
+  5. **会员三级**：silver→gold(1万累计)→platinum(5万累计)，每次积分变动后触发 `CheckAndUpgrade`
+- **影响范围**：yoga-studio/backend/ (12文件~800行) + miniprogram/ (4文件~400行)
+- **v2.7.0 引擎验证**：F11(DAG依赖检查)/F12(Schema迁移)/F6(原子写入)/F3(白名单) 全部在生产环境中验证通过
+
+---

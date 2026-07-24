@@ -41,9 +41,13 @@
 用户提出项目想法
   → Meta-Orion 激活：深度分析（§一）
   → META-GATE：用户确认分析结论
+  → PRD：产品需求文档生成（§一.PRD）
+  → GATE-PRD：用户确认 PRD
   → ★ CDL 能力自发现：双生态搜索 + Q-Score（§九）★
-  → Meta-Orion 生成：执行计划（DAG + 专家团 + 门控 + CDL建议）
-  → GATE-DESIGN：用户确认执行计划（含 CDL 搜索结果）
+  → SPEC：技术规格说明书生成（§一.SPEC）
+  → GATE-SPEC：用户确认 SPEC
+  → Meta-Orion 生成：执行计划（DAG + 专家团 + 门控 + CDL+SPEC建议）
+  → GATE-DESIGN：用户确认执行计划
   → Execution-Orion 激活：按 DAG 执行（§二）
   → 闭环监控 + 自动修正（§二.3）
   → 重大偏离 → Meta-Orion 重新介入
@@ -52,12 +56,14 @@
 
 ### 0.3 不可违反的铁律
 
+0. **PRD→SPEC 不可跳过**（v2.6.0）：META-GATE 确认后必须依次生成 PRD（产品需求文档）和 SPEC（技术规格说明书），不得跳过直接进入 DAG 生成。
 1. **没有分析就没有执行**：Meta-Orion 必须在任何执行之前完成分析。
-2. **META-GATE 不可跳过**：分析结论必须经用户确认才能生成 DAG。
-2b. **CDL 搜索不可跳过**（v2.1.0）：META-GATE 确认后、DAG 生成前，必须完成 CDL 双生态搜索。裸奔模式需用户显式声明。
-3. **DAG 必须通过结构验证**：无环、无孤立节点、关键路径含 GATE、需求交付物覆盖率=100%。
+2. **META-GATE 不可跳过**：分析结论必须经用户确认才能进入 PRD 阶段。
+2b. **CDL 搜索不可跳过**（v2.1.0）：PRD 完成后、SPEC 生成前，必须完成 CDL 双生态搜索。裸奔模式需用户显式声明。
+3. **DAG 必须通过结构验证**：无环、无孤立节点、关键路径含 GATE、需求交付物覆盖率=100%、必须包含 PRD 和 SPEC 节点。
 4. **专家按需组装，不按固定名单**：永远不自动调用 8 个固定专家。
 5. **闭环修正有熔断**：同节点最多修正 3 次。
+6. **双轨偏差路由**（v2.3.1）：每条偏差必须标注归属（OmniPM 引擎 vs 测试项目），写入不同文件。引擎偏差写入 `PROJECT_MEMORY.md`，测试项目发现写入 `project/PROJECT_MEMORY.md`。禁止混记。
 
 ---
 
@@ -168,9 +174,135 @@ analysis:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-### 1.4 执行计划生成
+### 1.4 产品需求文档（PRD）— v2.6.0 新增
 
-META-GATE 确认后，生成 ExecutionPlan：
+> **位置**：META-GATE 确认后 → CDL 搜索前
+> **类比**："做什么" —— 定义产品的业务边界和用户价值
+
+META-GATE 用户确认后，Orion **必须**产出 PRD 文档。PRD 回答"为谁解决什么问题、做到什么范围"：
+
+#### PRD 产出模板
+
+```markdown
+# {项目名} — 产品需求文档
+
+## 1. 产品愿景
+- 一句话：这个产品为什么存在？
+- 核心价值主张（3-5 条）
+
+## 2. 用户角色与场景
+| 角色 | 核心场景 | 使用频率 | 优先级 |
+|------|----------|----------|--------|
+| ... | ... | ... | P0/P1/P2 |
+
+## 3. 功能边界
+- 包含（In Scope）
+- 不包含（Out of Scope）
+- 后续版本（Future）
+
+## 4. 商业模式（如适用）
+- 付费点 / 免费增值策略 / 定价模型
+
+## 5. 竞品分析（如适用）
+| 竞品 | 优势 | 劣势 | 差异化机会 |
+|------|------|------|-----------|
+
+## 6. 非功能需求（可推迟到 SPEC 细化）
+- 性能 / 安全 / 可用性初版约束
+
+## 7. 术语表
+- 统一业务术语定义
+```
+
+#### PRD 门控
+
+PRD 产出后，Orion 输出 `[GATE-PRD]` 确认块——这是 META-GATE 后的**第二个用户确认点**：
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[GATE-PRD] 产品需求确认
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 产品本质：（一句话）
+📊 用户角色：{N}个 | 功能模块：{M}个
+⚠️ 关键决策：{列出最关键的1-3个产品决策}
+
+> 请回复"确认"进入 CDL 搜索 + SPEC / "修正"调整 PRD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### 1.5 技术规格说明书（SPEC）— v2.6.0 新增
+
+> **位置**：CDL 搜索完成后 → DAG 生成前
+> **类比**："怎么做（技术契约）" —— 将 PRD 翻译为可执行的技术规格
+
+CDL 搜索完成后，Orion **必须**基于 PRD + CDL 结果产出 SPEC。SPEC 是后续 DESIGN 和 DEVELOP 的**唯一技术事实源**：
+
+#### SPEC 产出模板
+
+```markdown
+# {项目名} — 技术规格说明书
+
+## 1. 数据库 Schema（如有持久化）
+- 实体关系图（文字描述）
+- 核心表定义（字段/类型/约束/索引）
+- 迁移策略
+
+## 2. API 契约（如有后端）
+- REST/GraphQL/gRPC 端点列表
+- 请求/响应结构
+- 认证方式
+- 错误码约定
+
+## 3. 状态机（如有复杂状态流转）
+- 状态定义 + 合法转换
+
+## 4. 核心算法（如有）
+- 伪代码 / 流程图
+
+## 5. 组件树 / 路由表（如有前端）
+- 页面与组件层级
+- 路由定义
+
+## 6. 技术栈锁定
+| 层 | 选型 | 版本 | 原因 |
+|----|------|------|------|
+| ... | ... | ... | ... |
+
+> ⚠️ **版本约束原则（v2.6.1）**：使用主版本号约束（如 `^18.0.0` 而非 `^18.3.1`），除非明确需要特定 minor/patch 特性。
+> 对于 Pro Components 等快速迭代的库，生成 package.json 前应验证 npm registry 中该版本是否存在。
+
+## 7. 非功能需求细则
+- 性能指标（P95 延迟/吞吐量）
+- 安全要求（加密标准/认证协议）
+- 可用性目标（SLA）
+
+## 8. CDL 能力采纳清单
+- 从 CDL 搜索结果中采纳的外部能力/库/最佳实践
+- 采纳理由 + 集成方式
+```
+
+#### SPEC 门控
+
+SPEC 产出后，Orion 输出 `[GATE-SPEC]` 确认块——这是 DAG 生成前的**最后确认点**：
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[GATE-SPEC] 技术规格确认
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 技术栈：{列出关键选型}
+📊 数据库表：{N}个 | API端点：{M}个 | 前端页面：{K}个
+📦 CDL采纳：{N}个外部能力
+⚠️ 关键风险：{最高风险项}
+
+> 请回复"确认"生成执行计划(DAG) / "修正"调整 SPEC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### 1.6 执行计划生成
+
+SPEC 确认（GATE-SPEC）后，生成 ExecutionPlan：
 
 ```yaml
 execution_plan:
@@ -217,25 +349,30 @@ execution_plan:
     # ...
 ```
 
-### 1.5 DAG 生成规则
+### 1.7 DAG 生成规则（v2.6.0 更新）
 
-1. **domain weight > 0 → 生成对应的 DESIGN 节点**
+0. **强制前置节点**：所有 DAG 必须包含 `node_prd`（PRD产出）和 `node_spec`（SPEC产出）作为根节点或第二层节点
+1. **domain weight > 0 → 生成对应的 DESIGN 节点**（基于 SPEC，非直接分析）
 2. **每个 DESIGN 节点 → 配对 REVIEW 节点**（weight ≥ 0.7 时强制 DEEP REVIEW）
 3. **可并行的 DESIGN 节点 → 设置 depends_on=[]**
 4. **审查通过 → 进入 DEVELOP → TEST 循环**
-5. **GATE 插入位置**：每个不可逆决策点（需求基线、设计冻结、交付验收），至少 1 个、最多 5 个
+5. **GATE 插入位置**：每个不可逆决策点（PRD基线、SPEC基线、设计冻结、交付验收），至少 2 个、最多 6 个
 6. **安全域强制规则**：含"用户数据/支付/认证/对外API"任一项 → SEC 专家至少 LIGHT
+7. **PRD节点 > SPEC节点**：SPEC 的 depends_on 必须包含 `node_prd`；所有 DESIGN 节点的 depends_on 必须包含 `node_spec`
 
-### 1.6 DAG 结构验证器（生成后自动执行）
+### 1.8 DAG 结构验证器（生成后自动执行）
 
 #### A. 拓扑结构检查
 ```
 ☐ 无循环依赖（拓扑排序成功）
 ☐ 无孤立节点
-☐ 关键路径上至少含 1 个 GATE 节点
+☐ 强制节点存在：node_prd（类型PRD） + node_spec（类型SPEC）
+☐ 关键路径上至少含 2 个 GATE 节点（GATE-PRD + GATE-SPEC/GATE-DESIGN）
 ☐ 每个 DESIGN 节点后跟随 REVIEW 节点
 ☐ 节点总数 ≤ 15
 ☐ DEVELOP 和 TEST 节点形成反馈边
+☐ SPEC 节点的 depends_on 包含 node_prd（或传递依赖）
+☐ 所有 DESIGN 节点的 depends_on 传递包含 node_spec
 ```
 
 #### B. 需求覆盖率检查（v2.1.0）
@@ -329,7 +466,7 @@ REVIEW 节点完成后，Orion **必须**检查 run_experts 输出顶部的 `╔
 - `dag_suggestion.action != 'complete'` 时**必须**调用 `omni_dag fail`
 - 修正后重试**必须**重新调用 run_experts，不能自己写补丁
 
-### 2.3.2 偏差检测
+### 2.3.2 偏差检测（v2.3.1：双轨路由）
 ```
 检测点：节点 success_criteria 检查失败
 处理流程：
@@ -339,14 +476,27 @@ REVIEW 节点完成后，Orion **必须**检查 run_experts 输出顶部的 `╔
      - DESIGN_FLAW → 当前设计有问题
      - REQUIREMENT_GAP → 需求遗漏或理解偏差
      - TECH_CONSTRAINT → 技术约束冲突
-  3. 确定回退目标（Where to fix?）
+     - OMNI_ENGINE_BUG → OmniPM 自身工具/流程未按设计运行 ★v2.3.1新增
+  3. ★ 偏差归属判定（双轨路由，v2.3.1）：
+     ┌─ OMNI_ENGINE_BUG → target: omnipm
+     │   写入引擎 PROJECT_MEMORY.md engine_deviations_open
+     │   示例：run_experts 空输出、DAG 验证失败、GATE 未暂停
+     │
+     └─ CODE_BUG / DESIGN_FLAW / REQUIREMENT_GAP / TECH_CONSTRAINT
+        → target: test-project（如当前运行在测试验证模式下）
+          写入测试项目 project/PROJECT_MEMORY.md findings
+          示例：密钥硬编码、SQL注入风险、缺少错误处理
+        注意：若当前项目本身即为 OmniPM 引擎开发，则 CODE_BUG 也写入引擎 PROJECT_MEMORY.md
+  4. 确定回退目标（Where to fix?）
      - CODE_BUG → 回退到当前 DEVELOP 节点
      - DESIGN_FLAW → 回退到最近的 DESIGN 节点，重新设计→重新 REVIEW
      - REQUIREMENT_GAP → Meta-Orion 重新介入，可能重构部分 DAG
      - TECH_CONSTRAINT → 回退到 DESIGN，调整技术选型
-  4. 评估回退代价（受影响节点数 × 已完成工作量）
-  5. 输出修正方案 → 用户确认（非 CODE_BUG 级别）
-  6. 执行修正
+     - OMNI_ENGINE_BUG → 暂停 DAG 执行，优先修复引擎偏差（可能影响后续所有节点）
+  5. 评估回退代价（受影响节点数 × 已完成工作量）
+  6. 输出修正方案 → 用户确认（非 CODE_BUG 级别）
+  7. ★ 按 target 写入对应的 PROJECT_MEMORY.md
+  8. 执行修正
 ```
 
 **熔断规则**：
@@ -401,6 +551,30 @@ Meta-Orion 重新介入时：
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
+#### GATE-DESIGN 专属增强：`[CDL]` 候选能力清单（v2.6.0）
+
+GATE-DESIGN 确认块**必须**在 `🔑 关键决策点` 之前包含结构化 CDL 结果：
+
+```
+📦 [CDL] 候选能力清单
+┌──────┬──────────┬──────────┬────────┬──────────┐
+│ 来源  │ 名称      │ 可用性    │ Q-Score │ 采纳建议  │
+├──────┼──────────┼──────────┼────────┼──────────┤
+│ GitHub│ fitbook  │ ✅ 可直接用│ 85     │ ✅ 采纳   │
+│ Exa   │ Go多租户  │ ⚠️ 需适配 │ 72     │ 🔄 参考   │
+│ agent │ React18  │ ✅ 可直接用│ 90     │ ✅ 采纳   │
+│ ...   │ ...      │ ...      │ ...    │ ...      │
+└──────┴──────────┴──────────┴────────┴──────────┘
+
+采纳合计: {N}项 | 参考: {M}项 | 弃用: {K}项
+裸奔模式: 如已降级 → 在此声明原因
+```
+
+**硬性规则**：
+- 每个 CDL 搜索结果必须包含 5 列：来源/名称/可用性/Q-Score/采纳建议
+- 如裸奔模式，需声明降级原因和级别
+- 此格式缺失或为空 → GATE-DESIGN 阻断（CDL-02 违规）
+
 ---
 
 ## 四、安全协议（保留 + 增强）
@@ -440,9 +614,18 @@ v1.0.0-PI §2.2（记忆文件门禁）、§2.3（代码生成安全门禁）全
 
 ## 六、项目记忆机制（保留 + 增强）
 
-### 6.1 双文件架构（v1.0.0-PI §七 保留）
+### 6.1 多文件架构（v2.3.1：双轨偏差路由）
 
-`PROJECT_MEMORY.md` + `PROJECT_DECISIONS.md`
+| 文件 | 用途 | 写入内容 |
+|------|------|----------|
+| `PROJECT_MEMORY.md` | 引擎状态 + OmniPM 自身偏差 | DAG 状态、验证日志、`engine_deviations_open` |
+| `PROJECT_DECISIONS.md` | 架构决策记录 | 不可变追加的决策日志 |
+| `project/PROJECT_MEMORY.md` | 测试项目的业务发现 | 评审发现、代码质量问题、修复记录 |
+
+**双轨路由规则（铁律 6）**：
+- OmniPM 引擎偏差（工具/流程未按设计运行）→ `PROJECT_MEMORY.md`
+- 测试项目业务发现（OmniPM 正常运行产出的评审结果）→ `project/PROJECT_MEMORY.md`
+- 每条偏差必须有 `target` 字段标注归属
 
 ### 6.2 新增字段
 
@@ -477,7 +660,11 @@ execution_plan_ref: "..."     # ExecutionPlan 快照引用
 
 ---
 
-## 九、CDL 能力自发现（v2.1.0 强制约束）
+## 九、CDL 能力自发现（v2.4.0 代码级自动化）
+
+> **v2.4.0 更新**：CDL 已从纯提示词规范升级为 Extension 代码实现。
+> 使用 `cdl_search` 工具执行自动化搜索，替代手工 CLI 调用。
+> 详细设计文档仍保留在 `modules/cdl_guide.md` + `modules/cdl_quality_gate.md`。
 
 ### 9.1 硬性触发规则（不可跳过）
 
@@ -485,21 +672,39 @@ CDL 能力搜索是 META-GATE → DAG 生成之间的**强制步骤**：
 
 | 规则 | 内容 | 违反后果 |
 |------|------|----------|
-| CDL-01 | META-GATE 用户确认后，**必须**执行 CDL 双生态搜索，不得跳过 | DAG 生成阻断，回退到 CDL 搜索 |
-| CDL-02 | CDL 搜索结果**必须**出现在 GATE-DESIGN 确认块中 | GATE-DESIGN 阻断，重新生成 |
+| CDL-01 | PRD 产出 + GATE-PRD 用户确认后，**必须**执行 CDL 双生态搜索，不得跳过 | SPEC 生成阻断，回退到 CDL 搜索 |
+| CDL-02 | CDL 搜索结果**必须**以结构化 `[CDL] 候选能力清单`（5列表格）出现在 GATE-DESIGN 确认块中 | GATE-DESIGN 阻断，重新生成 |
 | CDL-03 | DAG 生成前**必须**验证 `CDL_EXECUTED=true` | DAG 生成拒绝启动 |
 
-### 9.2 执行流程
+### 9.2 执行流程（v2.4.0 工具化）
 
 ```
-META-GATE 用户确认 → @LOAD:modules/cdl_guide.md → 双生态搜索
-  → Q-Score 五维评分 → 输出候选清单(AUTO/MANUAL/REJECTED)
-  → 设置 CDL_EXECUTED=true → 生成 ExecutionPlan → GATE-DESIGN展示结果
+META-GATE 用户确认
+  → cdl_search({ action: "detect" })  ← 检测后端可用性
+  → cdl_search({ action: "search", panorama: PROJECT_PANORAMA })  ← 双生态搜索
+  → cdl_search({ action: "qscore", candidates: [...] })  ← Q-Score 评估
+  → 输出候选清单(AUTO/MANUAL/REJECTED)
+  → 设置 CDL_EXECUTED=true
+  → 生成 ExecutionPlan → GATE-DESIGN展示结果
 ```
 
-### 9.3 裸奔模式
+**后端降级链**（自动）：Exa语义搜索 → GitHub代码搜索 → agent-reach渠道检测 → 缓存 → 裸奔模式
 
-用户显式声明"裸奔模式"/"跳过能力搜索"时不视为违反 CDL-01，但仍需在 GATE-DESIGN 中展示 `[CDL] 裸奔模式声明` 块。
+### 9.3 `cdl_search` 工具操作
+
+| 操作 | 说明 | 示例 |
+|------|------|------|
+| `detect` | 检测全部后端可用性，返回降级级别 | `cdl_search({ action: "detect" })` |
+| `search` | 执行双生态搜索（需提供项目全景图） | `cdl_search({ action: "search", panorama: {...} })` |
+| `qscore` | 对候选列表执行 Q-Score 评分 | `cdl_search({ action: "qscore", candidates: [...] })` |
+| `status` | 查看 CDL 状态 + 清理过期缓存 | `cdl_search({ action: "status" })` |
+| `cache_clean` | 清理过期缓存条目 | `cdl_search({ action: "cache_clean" })` |
+
+### 9.4 裸奔模式
+
+- 用户显式声明"裸奔模式"/"跳过能力搜索"时不视为违反 CDL-01
+- 所有后端不可用时自动降级为裸奔模式（`degradationLevel: baremetal`）
+- 仍需在 GATE-DESIGN 中展示 `[CDL] 裸奔模式声明` 块
 
 ---
 
